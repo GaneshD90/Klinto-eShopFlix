@@ -1,0 +1,36 @@
+﻿@model IEnumerable<eShopFlix.Web.Models.ProductModel>
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Our Products</h1>
+@if (Model != null)
+{
+    <div class="row">
+        @foreach (var product in Model)
+        {
+            <div class="col-sm-3 mb-3">
+                <div class="card">
+                    <img style="height:150px" src="@product.ImageUrl" alt="@product.Name">
+                    <div class="card-body">
+                        <h5 class="card-title">@product.Name</h5>
+                        <p class="card-text">@product.Description</p>
+                        @if (CurrentUser != null)
+                        {
+                            <button onclick="addToCart('@product.ProductId','@product.Name','@product.UnitPrice', 1)" class="btn btn-primary">Add To Cart</button>
+                        }
+                        else
+                        {
+                            <a href="/Account/Login?returnUrl=/" class="btn btn-primary">Add to Cart</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <h3>No Products Found</h3>
+}
+
