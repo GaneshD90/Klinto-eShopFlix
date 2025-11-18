@@ -1,25 +1,30 @@
 ﻿{
+  "GlobalConfiguration": {
+    "BaseUrl": "https://localhost:7269",
+    "RequestIdKey": "x-correlation-id",
+    "RateLimitOptions": {
+      "ClientIdHeader": "X-Client-Id",
+      "DisableRateLimitHeaders": false,
+      "QuotaExceededMessage": "API rate limit exceeded. Try again later.",
+      "HttpStatusCode": 429
+    }
+  },
   "Routes": [
     {
       "DownstreamPathTemplate": "/api/catalog/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 5113
-        }
+        { "Host": "localhost", "Port": 7159 }
       ],
       "UpstreamPathTemplate": "/catalog/{everything}",
-      "UpstreamHttpMethod": [ "GET", "Post" ]
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     },
     {
       "DownstreamPathTemplate": "/api/product/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 5113
-        }
+        { "Host": "localhost", "Port": 7159 }
       ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "eShopFlixEndPointKey@12345678"
@@ -28,55 +33,63 @@
         "Roles": "Admin"
       },
       "UpstreamPathTemplate": "/product/{everything}",
-      "UpstreamHttpMethod": [ "GET", "Post", "Put", "Delete" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     },
     {
       "DownstreamPathTemplate": "/api/auth/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 7236
-        }
+        { "Host": "localhost", "Port": 7236 }
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
-      "UpstreamHttpMethod": [ "Post" ]
+      "UpstreamHttpMethod": [ "POST" ],
+      "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     },
     {
       "DownstreamPathTemplate": "/api/cart/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 7106
-        }
+        { "Host": "localhost", "Port": 7106 }
       ],
       "UpstreamPathTemplate": "/cart/{everything}",
-      "UpstreamHttpMethod": [ "Get", "Post", "Delete", "Put" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "DELETE", "PUT" ],
+      "QoSOptions": {
+        "ExceptionsAllowedBeforeBreaking": 3,
+        "DurationOfBreak": 30,
+        "TimeoutValue": 5000
+      },
+      "RateLimitOptions": {
+        "ClientWhitelist": [],
+        "EnableRateLimiting": true,
+        "Period": "1m",
+        "PeriodTimespan": 1,
+        "Limit": 100
+      },
+      "LoadBalancerOptions": {
+        "Type": "RoundRobin"
+      },
+      "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     },
     {
       "DownstreamPathTemplate": "/api/payment/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 7103
-        }
+        { "Host": "localhost", "Port": 7103 }
       ],
       "UpstreamPathTemplate": "/payment/{everything}",
-      "UpstreamHttpMethod": [ "Get", "Post" ]
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     },
     {
       "DownstreamPathTemplate": "/api/order/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 7166
-        }
+        { "Host": "localhost", "Port": 7166 }
       ],
       "UpstreamPathTemplate": "/order/{everything}",
-      "UpstreamHttpMethod": [ "Get", "Post" ]
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     }
   ]
-} 
+}
