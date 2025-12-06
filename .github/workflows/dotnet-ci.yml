@@ -1,8 +1,10 @@
-name: .NET 9 CI (All Services)
+name: .NET 9 CI/CD (All Services)
 
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches: [ "main" ]
 
@@ -19,6 +21,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.sln', '**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Restore
         run: dotnet restore MicroservicesApp.sln
@@ -58,7 +68,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path out | Out-Null
           $projects = Get-Content -Path projects-to-publish.txt
           foreach ($proj in $projects) {
-            # Derive a simple folder name for output (project file name without extension)
             $name = [System.IO.Path]::GetFileNameWithoutExtension($proj)
             $outDir = Join-Path -Path "out" -ChildPath $name
             Write-Host "Publishing $proj -> $outDir"
@@ -77,3 +86,38 @@ jobs:
         with:
           name: test-results
           path: '**/*.trx'
+
+  release:
+    # Runs only on tag pushes (v*.*.*)
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-test-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required to create a release
+    steps:
+      - name: Download published artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: published-all
+          path: out
+
+      - name: Package each project output and generate checksums
+        run: |
+          set -e
+          shopt -s nullglob
+          for d in out/*/; do
+            base="$(basename "$d")"
+            zip -r "out/${base}.zip" "$d"
+            sha256sum "out/${base}.zip" > "out/${base}.zip.sha256"
+          done
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            out/*.zip
+            out/*.zip.sha256
