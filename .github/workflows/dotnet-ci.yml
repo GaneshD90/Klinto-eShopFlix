@@ -1,0 +1,79 @@
+name: .NET 9 CI (All Services)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore MicroservicesApp.sln
+
+      - name: Build (Release)
+        run: dotnet build MicroservicesApp.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test MicroservicesApp.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+
+      - name: Discover projects to publish
+        shell: pwsh
+        run: |
+          # Find all csproj except test projects and client/UI projects (adjust filters if needed)
+          $projects = Get-ChildItem -Path . -Recurse -Filter *.csproj |
+            Where-Object {
+              $_.FullName -notmatch '\.Tests\\' -and
+              $_.FullName -notmatch '\.Test\\'  -and
+              $_.FullName -notmatch 'Tests\\'   -and
+              $_.FullName -notmatch 'Client\\'  -and
+              $_.FullName -notmatch 'UI\\'
+            } |
+            Select-Object -ExpandProperty FullName
+
+          if (-not $projects) {
+            Write-Error "No publishable projects found."
+          }
+
+          # Save the list for next steps
+          $projects | Out-File -FilePath projects-to-publish.txt -Encoding utf8
+          Write-Host "Projects to publish:"
+          $projects | ForEach-Object { Write-Host " - $_" }
+
+      - name: Publish all projects (Release)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          $projects = Get-Content -Path projects-to-publish.txt
+          foreach ($proj in $projects) {
+            # Derive a simple folder name for output (project file name without extension)
+            $name = [System.IO.Path]::GetFileNameWithoutExtension($proj)
+            $outDir = Join-Path -Path "out" -ChildPath $name
+            Write-Host "Publishing $proj -> $outDir"
+            dotnet publish "$proj" -c Release -o "$outDir"
+          }
+
+      - name: Upload published artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-all
+          path: out
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/*.trx'
