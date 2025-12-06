@@ -142,6 +142,8 @@ If you plan to add Docker and docker-compose:
 - Keep services independent with clear APIs and versioning
 - Add/update EF migrations with each schema change
 - Write tests for new features and bug fixes
+- 
+[![.NET 9 CI (All Services)](https://github.com/GaneshDurai90/EshopFlix-Microservices/actions/workflows/dotnet-ci.yml/badge.svg)](https://github.com/GaneshDurai90/EshopFlix-Microservices/actions/workflows/dotnet-ci.yml)
 
 ## License
 
