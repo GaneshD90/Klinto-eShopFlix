@@ -1,9 +1,9 @@
 ﻿@model PaymentModel
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Payment";
 }
 
-<h1>Index</h1>
+<h1>Review & Pay</h1>
 
 @if (Model != null && Model.Cart.CartItems.Count() > 0)
 {
@@ -119,9 +119,6 @@
             }
         };
         var rzp1 = new Razorpay(options);
-        window.onload = function(){
-            document.getElementById('rzp-button').click();
-        }
         document.getElementById('rzp-button').onclick = function(e){
             rzp1.open();
             e.preventDefault();

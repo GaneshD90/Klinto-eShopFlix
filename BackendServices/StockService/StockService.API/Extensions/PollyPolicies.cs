@@ -1,14 +1,15 @@
+using Contracts.Resilience;
 using Polly;
 using Polly.Timeout;
 using Serilog;
 using System.Net;
-using System.Text;
 
 namespace StockService.API.Extensions;
 
 /// <summary>
 /// Resilience pipeline for outbound HTTP calls using Polly.
 /// Implements retry, circuit breaker, timeout, bulkhead, and fallback patterns.
+/// Uses shared context-aware fallback responses from Contracts.
 /// </summary>
 public static class PollyPolicies
 {
@@ -20,17 +21,16 @@ public static class PollyPolicies
 
     private static IAsyncPolicy<HttpResponseMessage> BuildCompositePolicy(string operationKey)
     {
-        var rng = new Random();
-
         // Retry policy with exponential backoff and jitter
         var retry = Policy
-            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            .HandleResult<HttpResponseMessage>(r => ShouldRetry(r.StatusCode))
             .Or<HttpRequestException>()
             .Or<TimeoutRejectedException>()
+            .Or<TaskCanceledException>()
             .WaitAndRetryAsync(
                 retryCount: 3,
                 sleepDurationProvider: attempt =>
-                    TimeSpan.FromSeconds(Math.Pow(2, attempt)) + TimeSpan.FromMilliseconds(rng.Next(0, 250)),
+                    TimeSpan.FromSeconds(Math.Pow(2, attempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 250)),
                 onRetry: (outcome, delay, attempt, ctx) =>
                 {
                     var status = outcome.Result?.StatusCode.ToString() ?? outcome.Exception?.GetType().Name ?? "unknown";
@@ -47,6 +47,7 @@ public static class PollyPolicies
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<HttpRequestException>()
             .Or<TimeoutRejectedException>()
+            .Or<TaskCanceledException>()
             .CircuitBreakerAsync(
                 handledEventsAllowedBeforeBreaking: 5,
                 durationOfBreak: TimeSpan.FromSeconds(30),
@@ -71,18 +72,26 @@ public static class PollyPolicies
                 return Task.CompletedTask;
             });
 
-        // Fallback policy for graceful degradation
+        // Fallback policy with context-aware responses
         var fallback = Policy<HttpResponseMessage>
             .Handle<Exception>()
             .OrResult(r => !r.IsSuccessStatusCode)
             .FallbackAsync(
-                fallbackAction: ct =>
+                fallbackAction: (delegateResult, context, ct) =>
                 {
-                    Log.Warning("[Fallback] op={OperationKey} returning safe response", operationKey);
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new StringContent("[]", Encoding.UTF8, "application/json")
-                    });
+                    var fallbackResponse = FallbackResponses.GetFallback(operationKey);
+                    
+                    Log.Warning("[Fallback] op={OperationKey} returning fallback. StatusCode={StatusCode}, OriginalError={Error}",
+                        operationKey,
+                        fallbackResponse.StatusCode,
+                        delegateResult.Exception?.Message ?? delegateResult.Result?.StatusCode.ToString() ?? "unknown");
+                    
+                    return Task.FromResult(fallbackResponse.ToHttpResponse());
+                },
+                onFallbackAsync: (delegateResult, context) =>
+                {
+                    Log.Information("[Fallback] op={OperationKey} fallback triggered", operationKey);
+                    return Task.CompletedTask;
                 });
 
         // Bulkhead for isolation
@@ -106,6 +115,23 @@ public static class PollyPolicies
                         breaker,
                         Policy.WrapAsync(retry, timeout))))
             .WithPolicyKey(operationKey);
+    }
+
+    /// <summary>
+    /// Determines if a status code should trigger a retry
+    /// </summary>
+    private static bool ShouldRetry(HttpStatusCode statusCode)
+    {
+        return statusCode switch
+        {
+            HttpStatusCode.RequestTimeout => true,      // 408
+            HttpStatusCode.TooManyRequests => true,     // 429
+            HttpStatusCode.InternalServerError => true, // 500
+            HttpStatusCode.BadGateway => true,          // 502
+            HttpStatusCode.ServiceUnavailable => true,  // 503
+            HttpStatusCode.GatewayTimeout => true,      // 504
+            _ => false
+        };
     }
 
     /// <summary>

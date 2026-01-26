@@ -1,0 +1,6 @@
+﻿namespace CatalogService.API
+{
+    public class Catalog
+    {
+    }
+}

@@ -33,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CatalogService.Application\CatalogService.Application.csproj" />
     <ProjectReference Include="..\CatalogService.Infrastructure\CatalogService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\eShopFlix.Shared\Contracts\Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -18,4 +18,8 @@
     <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="9.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\eShopFlix.Shared\Contracts\Contracts.csproj" />
+  </ItemGroup>
+
 </Project>
