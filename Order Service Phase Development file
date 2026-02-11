@@ -1,0 +1,188 @@
+Order Service Implementation plan :
+You are an enterprise software architect specializing in microservices development. Your task is to help me build an Order Service for an e-commerce platform using the exact architectural patterns, conventions, and technologies already established in our existing microservices (Cart, Catalog, Stock, Payment, Auth services).
+Current Context:
+•	Architecture: Microservices with Ocelot API Gateway
+•	Pattern: Clean Architecture + CQRS
+•	Infrastructure: Repositories in Infrastructure layer, Services with Abstractions/Implementations
+•	I have existing Order Service entities defined in the Domain layer (refer to uploaded Domain layer file)
+What I Need: I'm building this iteratively—not all at once. My goal is to establish the strong architecture with the features. I need you to create a step-by-step execution plan that breaks the Order Service development into logical phases that avoid memory/compilation issues and keep each phase deliverable-sized.
+Key Requirements the Order Service Must Support:
+1.	Order Creation & Processing (cart conversion, guest/registered checkout, multi-step validation, confirmation emails, order numbering, pre/backorders, order splitting/merging, B2B support)
+2.	Order Status Management (lifecycle tracking, status workflows, automatic updates, customer notifications, audit history, hold reasons)
+3.	Payment Processing (multi-payment methods, split payments, auth/capture, retry logic, reconciliation, refunds, chargebacks, fraud detection, 3D Secure, recurring payments)
+4.	Fulfillment Management (warehouse allocation, pick/pack/ship workflow, multi-warehouse splitting, batch operations, shipping labels, carrier rate shopping, tracking, delivery notifications, failed delivery handling)
+5.	Returns & Refunds (self-service portal, RMA workflow, return labels, inspection, auto-restocking, exchanges, store credit, partial returns, fraud detection)
+6.	Order Modifications (cancellations, quantity updates, address changes, shipping upgrades, item additions/removals, price adjustments, custom fees)
+7.	Notifications & Communications (order/shipping/delivery/status emails, SMS alerts, backorder/delay notifications, review requests)
+8.	Fraud & Risk Management (real-time fraud scoring, AVS/CVV checks, velocity checks, IP geolocation, high-risk flagging, manual review queues, order holds, blacklists)
+Architecture Requirements (Match Existing Services):
+•	Clean Architecture (layered separation)
+•	CQRS pattern implementation
+•	Repositories in Infrastructure layer
+•	Services with clear Abstractions and Implementations
+•	API Contracts
+•	Idempotency handling
+•	Polly resilience policies
+•	CorrelationIdDelegatingHandler
+•	SerilogExtensions
+•	CorrelationIdMiddleware
+•	ExceptionHandlingMiddleware
+•	OpenTelemetryExtensions for observability
+•	Custom handled exceptions
+•	Event handlers (for domain events)
+How I Want to Proceed:
+1.	First, analyze the requirements against my existing services to ensure architectural consistency
+2.	Create a phased development plan that sequences the work logically (e.g., Domain → Repository Contracts → Infrastructure Setup → Core Services → Payment Integration → Fulfillment → Returns, etc.)
+3.	For each phase, provide the code/implementation for that phase—do not execute multiple phases in a single response
+4.	Ensure each phase is independently testable and compilable
+What You Should Do Now: Review the  Domain layer with Order entities, and reference implementations from one or more existing services and create a detailed, sequential development plan for the Order Service. This plan should:
+•	List each phase in order
+•	Explain the dependencies and why that phase comes before/after others
+•	Specify what will be delivered in each phase (files, classes, patterns)
+•	Identify any architectural decisions or patterns from existing services I should replicate
+•	Flag any unique challenges specific to the Order Service requirements
+•	Suggest how to structure the solution to avoid circular dependencies and memory issues during development
+Focus entirely on the plan itself. Once I approve/adjust the plan, I'll ask you to implement Phase 1, then Phase 2, etc., one at a time.
+
+
+OrderService.Domain       → Entities (✅ DONE), Enums
+OrderService.Application  → CQRS (Abstractions, Dispatcher), Commands, Queries, Handlers,
+                             Validators, DTOs, Repositories (interfaces), Services (Abstractions/Implementations),
+                             Exceptions, Mappers, IntegrationEvents, Messaging
+OrderService.Infrastructure → DbContext (✅ DONE), Repositories (implementations),
+                              Messaging (OutboxPublisher), Idempotency (Store), ServiceRegistration
+OrderService.API           → Controllers, Contracts (request models), Middleware (CorrelationId, ExceptionHandling),
+                             Http (CorrelationIdDelegatingHandler), Extensions (PollyPolicies),
+                             Logging (SerilogExtensions), Observability (OpenTelemetryExtensions),
+                             Infrastructure/Idempotency (KeyResolver), Program.cs
+
+
+Phase Plan Summary
+Phase	Name	Layer(s)	Estimated Files	Dependencies
+1	Foundation & Cross-Cutting	Application + API	~12	None
+2	Core Order CQRS — Creation & Retrieval	Application + Infrastructure + API	~25	Phase 1
+3	Order Status Management & Timeline	Application + Infrastructure + API	~18	Phase 2
+4	Payment Processing	Application + Infrastructure + API	~20	Phase 3
+5	Fulfillment Management	Application + Infrastructure + API	~22	Phase 4
+6	Returns & Refunds	Application + Infrastructure + API	~20	Phase 5
+7	Order Modifications (Cancel, Adjust, Hold)	Application + Infrastructure + API	~22	Phase 5
+8	Fraud & Risk Management	Application + Infrastructure + API	~15	Phase 4
+9	Subscriptions & Recurring Orders	Application + Infrastructure + API	~12	Phase 4
+10	Analytics Views, Metrics & Dashboard Queries	Application + Infrastructure + API	~12	Phase 2
+11	Program.cs Wiring & Final Integration	API	~3	All Phases
+
+
+hase Details
+Phase 1 — Foundation & Cross-Cutting Concerns
+Why first: Every subsequent phase depends on the CQRS plumbing, exception handling, DTOs, and middleware. Without this, nothing compiles or connects.
+Deliverables:
+File	Location	Pattern Source
+CQRS/Abstractions.cs	Application	CatalogService.Application.CQRS.Abstractions
+CQRS/Dispatcher.cs	Application	CatalogService.Application.CQRS.Dispatcher
+Exceptions/AppException.cs	Application	CatalogService.Application.Exceptions.AppException
+DTOs/PagedResult.cs	Application	CatalogService.Application.DTO.PagedResult
+Messaging/IIntegrationEventPublisher.cs	Application	CatalogService.Application.Messaging
+Services/Abstractions/IIdempotencyAppService.cs	Application	CatalogService.Application.Services.Abstractions
+Services/Abstractions/IIdempotentAppRequest.cs	Application	CatalogService.Application.Services.Abstractions
+Middleware/CorrelationIdMiddleware.cs	API	CatalogService.API.Middleware
+Middleware/ExceptionHandlingMiddleware.cs	API	CatalogService.API.Middleware
+Http/CorrelationIdDelegatingHandler.cs	API	CatalogService.API.Http
+Logging/SerilogExtensions.cs	API	CatalogService.API.Logging
+Observability/OpenTelemetryExtensions.cs	API	CatalogService.API.Observability
+Extensions/PollyPolicies.cs	API	CatalogService.API.Extensions
+Infrastructure/Idempotency/IdempotencyKeyResolver.cs	API	CatalogService.API.Infrastructure.Idempotency
+Update .csproj files	All layers	Add FluentValidation, AutoMapper, Serilog, OpenTelemetry, Polly, Scrutor packages
+Architectural decisions:
+•	URN prefix: urn:problem:order: (matching urn:problem:catalog: pattern)
+•	Service name in telemetry: "OrderService"
+•	Namespace conventions: OrderService.API.Middleware, OrderService.Application.CQRS, etc.
+---
+Phase 2 — Core Order CQRS: Creation & Retrieval
+Why second: Order creation is the entry point for all downstream workflows. Every other feature (payment, fulfillment, returns) requires an order to exist first.
+Deliverables:
+Application Layer: | File | Purpose | |------|---------| | DTOs/OrderDto.cs | Detailed order DTO with items, addresses | | DTOs/OrderListItemDto.cs | Summary DTO for search results | | DTOs/OrderItemDto.cs | Order item DTO | | DTOs/OrderAddressDto.cs | Address DTO | | Mappers/OrderMapper.cs | AutoMapper profile | | Repositories/IOrderRepository.cs | Interface — GetByIdAsync, SearchAsync, AddAsync, UpdateAsync | | Repositories/IOrderItemRepository.cs | Interface — item CRUD | | IntegrationEvents/OrderIntegrationEvents.cs | OrderCreated, OrderUpdated records | | Orders/Commands/CreateOrderCommand.cs | ICommand → creates from direct input | | Orders/Commands/CreateOrderFromCartCommand.cs | ICommand → converts cart to order (calls SP) | | Orders/Queries/GetOrderByIdQuery.cs | IQuery | | Orders/Queries/SearchOrdersQuery.cs | IQuery with filters | | Orders/Queries/GetOrdersByCustomerQuery.cs | IQuery | | Orders/Handlers/CreateOrderCommandHandler.cs | Handler | | Orders/Handlers/CreateOrderFromCartCommandHandler.cs | Handler (uses SP_CreateOrderFromCart) | | Orders/Handlers/GetOrderByIdQueryHandler.cs | Handler | | Orders/Handlers/SearchOrdersQueryHandler.cs | Handler | | Orders/Handlers/GetOrdersByCustomerQueryHandler.cs | Handler | | Orders/Validators/CreateOrderCommandValidator.cs | FluentValidation | | Orders/Validators/CreateOrderFromCartCommandValidator.cs | FluentValidation | | Services/Abstractions/IOrderAppService.cs | Application service interface | | Services/Implementations/OrderAppService.cs | Dispatches to CQRS |
+Infrastructure Layer: | File | Purpose | |------|---------| | Persistence/Repositories/OrderRepository.cs | EF Core implementation | | Persistence/Repositories/OrderItemRepository.cs | EF Core implementation | | Messaging/OutboxIntegrationEventPublisher.cs | Outbox pattern | | Persistence/Services/IdempotentRequestStore.cs | Idempotency store | | Services/Implementations/IdempotencyAppService.cs (Application) | Idempotency orchestrator | | Update ServiceRegistration.cs | Wire repositories, services, CQRS handlers |
+API Layer: | File | Purpose | |------|---------| | Contracts/Orders/CreateOrderRequest.cs | API contract | | Contracts/Orders/CreateOrderFromCartRequest.cs | API contract | | Controllers/OrderController.cs | CRUD endpoints: Search, GetById, Create, CreateFromCart |
+Key challenge: The DbContext already maps stored procedures. The CreateOrderFromCartCommandHandler must use IOrderServiceDbContextProcedures.SP_CreateOrderFromCartAsync via the Infrastructure layer, keeping the Application layer SP-unaware (the repository will encapsulate SP calls).
+---
+Phase 3 — Order Status Management & Timeline
+Why third: Status transitions underpin every subsequent workflow (payment triggers "PaymentReceived", fulfillment triggers "Shipped", etc.). Building the status engine early ensures all future phases use a consistent state machine.
+Deliverables:
+Application Layer: | File | Purpose | |------|---------| | DTOs/OrderStatusHistoryDto.cs | Status change DTO | | DTOs/OrderTimelineDto.cs | Timeline event DTO | | DTOs/OrderNoteDto.cs | Note DTO | | Repositories/IOrderStatusHistoryRepository.cs | Interface | | Repositories/IOrderTimelineRepository.cs | Interface | | Repositories/IOrderNoteRepository.cs | Interface | | OrderStatus/Commands/UpdateOrderStatusCommand.cs | ICommand | | OrderStatus/Commands/ConfirmOrderCommand.cs | ICommand (uses SP_ConfirmOrder) | | OrderStatus/Commands/AddOrderNoteCommand.cs | ICommand | | OrderStatus/Queries/GetOrderStatusHistoryQuery.cs | IQuery | | OrderStatus/Queries/GetOrderTimelineQuery.cs | IQuery | | OrderStatus/Handlers/* | All handlers (5 files) | | OrderStatus/Validators/* | All validators (3 files) |
+Infrastructure Layer: | File | Purpose | |------|---------| | Persistence/Repositories/OrderStatusHistoryRepository.cs | Implementation | | Persistence/Repositories/OrderTimelineRepository.cs | Implementation | | Persistence/Repositories/OrderNoteRepository.cs | Implementation |
+API Layer: | File | Purpose | |------|---------| | Contracts/OrderStatus/UpdateOrderStatusRequest.cs | Contract | | Contracts/OrderStatus/AddOrderNoteRequest.cs | Contract | | Controllers/OrderStatusController.cs | Status endpoints |
+Unique challenge: Status transitions need validation rules (e.g., can't go from "Cancelled" → "Shipped"). This phase introduces a lightweight state machine or validation table.
+---
+Phase 4 — Payment Processing
+Why fourth: Payments must be processed after order creation and confirmation. This is the gateway to fulfillment. No payment → no shipment.
+Deliverables:
+Application Layer: | File | Purpose | |------|---------| | DTOs/OrderPaymentDto.cs | Payment DTO | | Repositories/IOrderPaymentRepository.cs | Interface | | Payments/Commands/ProcessPaymentCommand.cs | ICommand (uses SP_ProcessPayment) | | Payments/Commands/AuthorizePaymentCommand.cs | ICommand | | Payments/Commands/CapturePaymentCommand.cs | ICommand | | Payments/Queries/GetOrderPaymentsQuery.cs | IQuery | | Payments/Handlers/* | All handlers (4 files) | | Payments/Validators/* | All validators (3 files) | | Services/Abstractions/IPaymentAppService.cs | Service interface | | Services/Implementations/PaymentAppService.cs | Service implementation |
+Infrastructure Layer: | File | Purpose | |------|---------| | Persistence/Repositories/OrderPaymentRepository.cs | Implementation |
+API Layer: | File | Purpose | |------|---------| | Contracts/Payments/ProcessPaymentRequest.cs | Contract | | Contracts/Payments/AuthorizePaymentRequest.cs | Contract | | Controllers/PaymentController.cs | Payment endpoints |
+Unique challenge: Payment requires cross-service calls (to PaymentService API via HttpClient with Polly policies). The CorrelationIdDelegatingHandler ensures trace continuity. Split payments require multiple OrderPayment records for one order.
+---
+Phase 5 — Fulfillment Management
+Why fifth: Can only begin after payment is authorized/captured. Depends on the status engine from Phase 3.
+Deliverables:
+Application Layer: | File | Purpose | |------|---------| | DTOs/OrderShipmentDto.cs | Shipment DTO | | DTOs/OrderShipmentItemDto.cs | Shipment item DTO | | DTOs/OrderFulfillmentAssignmentDto.cs | Fulfillment assignment DTO | | Repositories/IOrderShipmentRepository.cs | Interface | | Repositories/IOrderFulfillmentAssignmentRepository.cs | Interface | | Fulfillment/Commands/CreateShipmentCommand.cs | ICommand (uses SP_CreateShipment) | | Fulfillment/Commands/ShipOrderCommand.cs | ICommand (uses SP_ShipOrder) | | Fulfillment/Commands/MarkDeliveredCommand.cs | ICommand (uses SP_MarkOrderDelivered) | | Fulfillment/Commands/AssignFulfillmentCommand.cs | ICommand | | Fulfillment/Queries/GetShipmentsQuery.cs | IQuery | | Fulfillment/Queries/GetShipmentTrackingQuery.cs | IQuery (uses vw_ShipmentTracking) | | Fulfillment/Handlers/* | All handlers (6 files) | | Fulfillment/Validators/* | All validators (4 files) | | Services/Abstractions/IFulfillmentAppService.cs | Service interface | | Services/Implementations/FulfillmentAppService.cs | Service implementation |
+Infrastructure + API same pattern.
+Unique challenge: Multi-warehouse order splitting — one order can have multiple shipments from different warehouses. The fulfillment assignment table tracks pick/pack/ship at item level.
+---
+Phase 6 — Returns & Refunds
+Why sixth: Returns can only exist after an order has been fulfilled/delivered. Refunds link back to payments (Phase 4).
+Deliverables:
+Application Layer: | File | Purpose | |------|---------| | DTOs/OrderReturnDto.cs, OrderReturnItemDto.cs, OrderRefundDto.cs | DTOs | | Repositories/IOrderReturnRepository.cs, IOrderRefundRepository.cs | Interfaces | | Returns/Commands/CreateReturnRequestCommand.cs | ICommand (uses SP_CreateReturnRequest) | | Returns/Commands/ApproveReturnCommand.cs | ICommand | | Returns/Commands/ProcessRefundCommand.cs | ICommand (uses SP_ProcessRefund) | | Returns/Queries/GetReturnByIdQuery.cs, SearchReturnsQuery.cs | Queries | | Returns/Handlers/*, Returns/Validators/* | Handlers + Validators | | Services/Abstractions/IReturnAppService.cs | Interface | | Services/Implementations/ReturnAppService.cs | Implementation |
+Infrastructure + API same pattern.
+Unique challenge: Return ↔ Refund ↔ Payment triple-link. A return may or may not result in a refund. A refund may be partial. Refund can go to original payment method or store credit (different RefundMethod values).
+---
+Phase 7 — Order Modifications (Cancel, Adjust, Hold)
+Why seventh: Modifications are "mid-lifecycle" operations. They interact with status (Phase 3), payments (Phase 4), and fulfillment (Phase 5).
+Deliverables:
+Area	Commands	Queries
+Cancellations	CancelOrderCommand (SP), FullCancelCommand, PartialCancelCommand	GetCancellationsQuery
+Adjustments	AddAdjustmentCommand, UpdateOrderAddressCommand	GetAdjustmentsQuery
+Holds	PlaceOrderOnHoldCommand (SP), ReleaseOrderHoldCommand (SP)	GetOrderHoldsQuery
+Items	AddOrderItemsCommand (SP), RemoveOrderItemCommand, UpdateQuantityCommand	—
+Discounts	ApplyDiscountCommand	GetOrderDiscountsQuery
+Gift Cards	ApplyGiftCardCommand	GetOrderGiftCardsQuery
+Documents	GenerateDocumentCommand	GetOrderDocumentsQuery
+All follow the established CQRS + Repository + Service + Controller pattern.
+---
+Phase 8 — Fraud & Risk Management
+Why eighth: Fraud checks are performed during/after order creation but are logically a separate concern. Depends on order and payment data existing.
+Deliverables:
+•	DTOs/OrderFraudCheckDto.cs
+•	Repositories/IOrderFraudCheckRepository.cs
+•	Fraud/Commands/PerformFraudCheckCommand.cs (uses SP_PerformFraudCheck)
+•	Fraud/Commands/ReviewFraudCheckCommand.cs (manual review)
+•	Fraud/Queries/GetFraudChecksQuery.cs, GetFraudDashboardQuery.cs (uses vw_FraudRiskDashboard)
+•	Handlers, Validators, Service, Controller
+---
+Phase 9 — Subscriptions & Recurring Orders
+Why ninth: Subscriptions are a specialized order type. They build on top of standard order creation + payment processing.
+Deliverables:
+•	DTOs/OrderSubscriptionDto.cs
+•	Repositories/IOrderSubscriptionRepository.cs
+•	Subscriptions/Commands/CreateSubscriptionCommand.cs (SP_CreateSubscriptionOrder)
+•	Subscriptions/Commands/ProcessNextSubscriptionOrderCommand.cs (SP_ProcessNextSubscriptionOrder)
+•	Subscriptions/Queries/GetSubscriptionQuery.cs, SearchSubscriptionsQuery.cs (vw_SubscriptionAnalysis)
+•	Handlers, Validators, Service, Controller
+---
+Phase 10 — Analytics Views, Metrics & Dashboard Queries
+Why tenth: These are read-only aggregations over data created by all previous phases. No write operations.
+Deliverables:
+•	DTOs for all Vw* entities (10 DTOs)
+•	Query classes for each view (analytics are query-only, no commands)
+•	Repositories/IOrderMetricRepository.cs, IOrderAnalyticsRepository.cs
+•	Analytics/Queries/ — GetRevenueAnalysisQuery, GetDailyMetricsQuery, GetCustomerHistoryQuery, GetFulfillmentPerformanceQuery, GetPaymentAnalysisQuery, GetPendingActionsQuery, GetProductPerformanceQuery
+•	Single AnalyticsController.cs with read-only endpoints
+---
+Phase 11 — Program.cs Wiring & Final Integration
+Why last: This is the composition root. It references everything. Build it only after all components exist.
+Deliverables:
+•	Rewrite Program.cs to match CatalogService pattern (Serilog → OpenTelemetry → ServiceRegistration → Middleware pipeline → Health checks → Swagger)
+•	Update ServiceRegistration.cs to wire ALL repositories, services, CQRS assembly scanning, AutoMapper, Outbox publisher, Idempotency
+•	Remove MassTransit legacy references (currently commented out)
+•	Add appsettings.json connection strings / config sections if needed
+•	Final run_build verification
+---
