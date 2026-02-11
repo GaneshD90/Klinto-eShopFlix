@@ -222,4 +222,148 @@ public class StockServiceClient
         bytes[5] = 0x0F; // Flix marker
         return new Guid(bytes);
     }
+
+    // ============ Admin: Warehouse Operations ============
+
+    /// <summary>Get all warehouses.</summary>
+    public async Task<IReadOnlyList<WarehouseModel>> GetWarehousesAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await _client.GetFromJsonAsync<IReadOnlyList<WarehouseModel>>(
+                "stock/GetWarehouses", JsonOptions, ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting warehouses");
+            return [];
+        }
+    }
+
+    /// <summary>Get warehouse by ID.</summary>
+    public async Task<WarehouseModel?> GetWarehouseAsync(Guid warehouseId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _client.GetFromJsonAsync<WarehouseModel>(
+                $"stock/GetWarehouse/{warehouseId}", JsonOptions, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting warehouse {WarehouseId}", warehouseId);
+            return null;
+        }
+    }
+
+    // ============ Admin: Stock Item Queries ============
+
+    /// <summary>Get all stock items in a warehouse.</summary>
+    public async Task<IReadOnlyList<StockItemModel>> GetStockByWarehouseAsync(Guid warehouseId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _client.GetFromJsonAsync<IReadOnlyList<StockItemModel>>(
+                $"stock/GetStockByWarehouse/{warehouseId}", JsonOptions, ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock for warehouse {WarehouseId}", warehouseId);
+            return [];
+        }
+    }
+
+    /// <summary>Get a single stock item.</summary>
+    public async Task<StockItemModel?> GetStockItemAsync(Guid stockItemId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _client.GetFromJsonAsync<StockItemModel>(
+                $"stock/GetStockItem/{stockItemId}", JsonOptions, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock item {StockItemId}", stockItemId);
+            return null;
+        }
+    }
+
+    // ============ Admin: Alerts ============
+
+    /// <summary>Get all active alerts.</summary>
+    public async Task<IReadOnlyList<StockAlertModel>> GetActiveAlertsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await _client.GetFromJsonAsync<IReadOnlyList<StockAlertModel>>(
+                "stock/GetActiveAlerts", JsonOptions, ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting active alerts");
+            return [];
+        }
+    }
+
+    // ============ Admin: Reports ============
+
+    /// <summary>Get low stock report.</summary>
+    public async Task<IReadOnlyList<LowStockReportModel>> GetLowStockReportAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await _client.GetFromJsonAsync<IReadOnlyList<LowStockReportModel>>(
+                "stock/GetLowStock", JsonOptions, ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting low stock report");
+            return [];
+        }
+    }
+
+    // ============ Admin: Stock Adjustments ============
+
+    /// <summary>Increase stock quantity.</summary>
+    public async Task<StockAdjustmentResultModel?> IncreaseStockAsync(
+        Guid stockItemId, int quantity, string reason, Guid performedBy, CancellationToken ct = default)
+    {
+        try
+        {
+            var payload = new { StockItemId = stockItemId, Quantity = quantity, Reason = reason, PerformedBy = performedBy };
+            var response = await _client.PostAsJsonAsync("stock/IncreaseStock", payload, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("IncreaseStock failed: {Status}", response.StatusCode);
+                return null;
+            }
+            return await response.Content.ReadFromJsonAsync<StockAdjustmentResultModel>(JsonOptions, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error increasing stock {StockItemId}", stockItemId);
+            return null;
+        }
+    }
+
+    /// <summary>Decrease stock quantity.</summary>
+    public async Task<StockAdjustmentResultModel?> DecreaseStockAsync(
+        Guid stockItemId, int quantity, string reason, Guid performedBy, CancellationToken ct = default)
+    {
+        try
+        {
+            var payload = new { StockItemId = stockItemId, Quantity = quantity, Reason = reason, PerformedBy = performedBy };
+            var response = await _client.PostAsJsonAsync("stock/DecreaseStock", payload, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("DecreaseStock failed: {Status}", response.StatusCode);
+                return null;
+            }
+            return await response.Content.ReadFromJsonAsync<StockAdjustmentResultModel>(JsonOptions, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error decreasing stock {StockItemId}", stockItemId);
+            return null;
+        }
+    }
 }

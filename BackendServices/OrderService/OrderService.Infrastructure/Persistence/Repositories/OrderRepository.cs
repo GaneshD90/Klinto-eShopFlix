@@ -1,81 +1,138 @@
-﻿using OrderService.Application.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderService.Application.Repositories;
 using OrderService.Domain.Entities;
-
+using OrderService.Infrastructure.Persistence;
 
 namespace OrderService.Infrastructure.Persistence.Repositories
 {
-    public class OrderRepository : IOrderRepository
+    public sealed class OrderRepository : IOrderRepository
     {
-        OrderServiceDbContext _db;
-        public OrderRepository(OrderServiceDbContext db)
+        private readonly OrderServiceDbContext _dbContext;
+
+        public OrderRepository(OrderServiceDbContext dbContext)
         {
-            _db = db;
+            _dbContext = dbContext;
         }
 
-        public List<Order> GetAllOrder()
+        public async Task<Order?> GetByIdAsync(Guid orderId, CancellationToken ct = default)
         {
-            return _db.Orders.ToList();
-        }
-        public void SaveOrder(Order order, long cartId)
-        {
-            try
-            {
-                _db.Orders.Add(order);
-                _db.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-
-            }
+            return await _dbContext.Orders
+                .Include(o => o.OrderItems)
+                .Include(o => o.OrderAddresses)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId, ct);
         }
 
-        public async Task<bool> DeleteOrder(Guid orderId)
+        public async Task<Order?> GetByOrderNumberAsync(string orderNumber, CancellationToken ct = default)
         {
-            try
-            {
-                Order order = _db.Orders.Where(x => x.OrderId == orderId).FirstOrDefault();
-
-                if (order != null)
-                {
-                    _db.Remove(order);
-                    await _db.SaveChangesAsync();
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
+            return await _dbContext.Orders
+                .Include(o => o.OrderItems)
+                .Include(o => o.OrderAddresses)
+                .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber, ct);
         }
-        public async Task<bool> AcceptedOrder(Guid OrderId, DateTime AcceptedDateTime)
-        {
-            try
-            {
-                var order = _db.Orders.Where(x => x.OrderId == OrderId).FirstOrDefault();
-                if (order != null)
-                {
-                    order.AcceptDate = AcceptedDateTime;
-                    await _db.SaveChangesAsync();
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception)
-            {
 
-            }
-            return false;
-        }
-        public Order GetOrder(Guid orderId)
+        public async Task<(IReadOnlyList<Order> Items, int TotalCount)> SearchAsync(
+            string? term,
+            Guid? customerId,
+            string? orderStatus,
+            string? paymentStatus,
+            string? fulfillmentStatus,
+            DateTime? fromDate,
+            DateTime? toDate,
+            int page,
+            int pageSize,
+            CancellationToken ct = default)
         {
-            return _db.Orders.Where(x => x.OrderId == orderId).FirstOrDefault();
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+
+            var query = _dbContext.Orders
+                .Include(o => o.OrderItems)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(term))
+            {
+                var lowered = term.ToLower();
+                query = query.Where(o =>
+                    o.OrderNumber.ToLower().Contains(lowered) ||
+                    o.CustomerEmail.ToLower().Contains(lowered));
+            }
+
+            if (customerId.HasValue)
+            {
+                query = query.Where(o => o.CustomerId == customerId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(orderStatus))
+            {
+                query = query.Where(o => o.OrderStatus == orderStatus);
+            }
+
+            if (!string.IsNullOrWhiteSpace(paymentStatus))
+            {
+                query = query.Where(o => o.PaymentStatus == paymentStatus);
+            }
+
+            if (!string.IsNullOrWhiteSpace(fulfillmentStatus))
+            {
+                query = query.Where(o => o.FulfillmentStatus == fulfillmentStatus);
+            }
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate <= toDate.Value);
+            }
+
+            var total = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(o => o.OrderDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            return (items, total);
+        }
+
+        public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken ct = default)
+        {
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+
+            return await _dbContext.Orders
+                .Include(o => o.OrderItems)
+                .Where(o => o.CustomerId == customerId)
+                .OrderByDescending(o => o.OrderDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
+
+        public async Task<int> GetCustomerOrderCountAsync(Guid customerId, CancellationToken ct = default)
+        {
+            return await _dbContext.Orders
+                .CountAsync(o => o.CustomerId == customerId, ct);
+        }
+
+        public async Task AddAsync(Order order, CancellationToken ct = default)
+        {
+            await _dbContext.Orders.AddAsync(order, ct);
+            await _dbContext.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateAsync(Order order, CancellationToken ct = default)
+        {
+            _dbContext.Orders.Update(order);
+            await _dbContext.SaveChangesAsync(ct);
         }
     }
 }

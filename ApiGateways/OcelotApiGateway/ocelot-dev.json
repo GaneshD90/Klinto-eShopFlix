@@ -118,7 +118,7 @@
         { "Host": "localhost", "Port": 7166 }
       ],
       "UpstreamPathTemplate": "/order/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
       "DelegatingHandlers": [ "OcelotApiGateway.Resilience.DownstreamResilienceHandler, OcelotApiGateway" ]
     },
     {

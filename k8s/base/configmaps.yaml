@@ -1,0 +1,82 @@
+# Shared ConfigMap for all microservices
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eshopflix-shared-config
+  namespace: eshopflix
+  labels:
+    app.kubernetes.io/part-of: eshopflix-microservices
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  Logging__LogLevel__Default: "Information"
+  Logging__LogLevel__Microsoft.AspNetCore: "Warning"
+  
+---
+# API Gateway Ocelot Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ocelot-config
+  namespace: eshopflix
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/part-of: eshopflix-microservices
+data:
+  ocelot.json: |
+    {
+      "GlobalConfiguration": {
+        "BaseUrl": "http://api-gateway.eshopflix.svc.cluster.local",
+        "RequestIdKey": "x-correlation-id"
+      },
+      "Routes": [
+        {
+          "DownstreamPathTemplate": "/api/catalog/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "catalog-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/catalog/{everything}",
+          "UpstreamHttpMethod": [ "GET", "POST" ]
+        },
+        {
+          "DownstreamPathTemplate": "/api/products/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "catalog-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/products/{everything}",
+          "UpstreamHttpMethod": [ "GET" ]
+        },
+        {
+          "DownstreamPathTemplate": "/api/auth/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/auth/{everything}",
+          "UpstreamHttpMethod": [ "POST" ]
+        },
+        {
+          "DownstreamPathTemplate": "/api/cart/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "cart-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/cart/{everything}",
+          "UpstreamHttpMethod": [ "GET", "POST", "DELETE", "PUT" ]
+        },
+        {
+          "DownstreamPathTemplate": "/api/payment/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "payment-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/payment/{everything}",
+          "UpstreamHttpMethod": [ "GET", "POST" ]
+        },
+        {
+          "DownstreamPathTemplate": "/api/order/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/order/{everything}",
+          "UpstreamHttpMethod": [ "GET", "POST" ]
+        },
+        {
+          "DownstreamPathTemplate": "/api/Stock/{everything}",
+          "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "stock-service", "Port": 80 }],
+          "UpstreamPathTemplate": "/stock/{everything}",
+          "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+        }
+      ]
+    }

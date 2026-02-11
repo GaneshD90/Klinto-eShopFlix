@@ -1,0 +1,59 @@
+# Docker Compose Override for Local Development
+# This file is automatically picked up by docker-compose
+
+version: '3.8'
+
+services:
+  catalog-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./BackendServices/CatalogService/CatalogService.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+  auth-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./BackendServices/AuthService/AuthService.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+  cart-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./BackendServices/CartService/CartService.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+  payment-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./BackendServices/PaymentService/PaymentService.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+  order-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./BackendServices/OrderService/OrderService.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+  stock-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./BackendServices/StockService/StockService.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+  api-gateway:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug
+    volumes:
+      - ./ApiGateways/OcelotApiGateway/ocelot-docker.json:/app/ocelot-docker.json:ro
+
+  web-app:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Logging__LogLevel__Default=Debug

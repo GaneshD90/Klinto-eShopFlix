@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/eShopFlix.Web.styles.css" asp-append-version="true" />
 </head>
+@{
+    var activeController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+}
 <body>
     <header class="sticky-top">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
@@ -23,12 +26,18 @@
                             <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Explore</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="User" asp-controller="Home" asp-action="Index">Dashboard</a>
+                            <a class="nav-link @(activeController == "Home" ? "active fw-semibold" : "")" asp-area="User" asp-controller="Home" asp-action="Index">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(activeController == "Orders" ? "active fw-semibold" : "")" asp-area="User" asp-controller="Orders" asp-action="Index">My Orders</a>
                         </li>
                     </ul>
                     <ul class="navbar-nav mb-2 mb-lg-0">
                         <li class="nav-item align-self-center me-2">
-                            <span class="navbar-text text-light">Welcome: @CurrentUser?.Name</span>
+                            <a class="nav-link text-light" asp-area="" asp-controller="Cart" asp-action="Index" title="My Cart">🛒 Cart</a>
+                        </li>
+                        <li class="nav-item align-self-center me-2">
+                            <span class="navbar-text text-light">@CurrentUser?.Name</span>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="LogOut" asp-area="">Logout</a>
@@ -39,6 +48,8 @@
         </nav>
     </header>
     <div class="container py-4">
+        @await Html.PartialAsync("~/Views/Shared/_TokenStatus.cshtml")
+        @await Html.PartialAsync("~/Views/Shared/_FlashMessages.cshtml")
         <main role="main" class="pb-3">
             @RenderBody()
         </main>

@@ -9,12 +9,22 @@ namespace eShopFlix.Web.Controllers
     {
         private readonly CartServiceClient _cartServiceClient;
         private readonly PaymentServiceClient _paymentServiceClient;
+        private readonly OrderServiceClient _orderServiceClient;
         private readonly IConfiguration _configuration;
-        public PaymentController(CartServiceClient cartServiceClient, PaymentServiceClient paymentServiceClient, IConfiguration configuration)
+        private readonly ILogger<PaymentController> _logger;
+
+        public PaymentController(
+            CartServiceClient cartServiceClient,
+            PaymentServiceClient paymentServiceClient,
+            OrderServiceClient orderServiceClient,
+            IConfiguration configuration,
+            ILogger<PaymentController> logger)
         {
             _cartServiceClient = cartServiceClient;
             _paymentServiceClient = paymentServiceClient;
+            _orderServiceClient = orderServiceClient;
             _configuration = configuration;
+            _logger = logger;
         }
         public async Task<IActionResult> Index()
         {
@@ -52,7 +62,7 @@ namespace eShopFlix.Web.Controllers
             if (!string.IsNullOrEmpty(form["rzp_paymentid"]))
             {
                 string paymentId = form["rzp_paymentid"]!;
-                string orderId = form["rzp_orderid"]!;
+                string rzpOrderId = form["rzp_orderid"]!;
                 string signature = form["rzp_signature"]!;
                 string transactionId = form["Receipt"]!;
                 string currency = form["Currency"]!;
@@ -60,7 +70,7 @@ namespace eShopFlix.Web.Controllers
                 var payment = new PaymentConfirmModel
                 {
                     PaymentId = paymentId,
-                    OrderId = orderId,
+                    OrderId = rzpOrderId,
                     Signature = signature
                 };
                 string status = await _paymentServiceClient.VerifyPaymentAsync(payment);
@@ -72,6 +82,8 @@ namespace eShopFlix.Web.Controllers
                         ViewBag.Message = "Cart not found after payment. Please contact support with your payment id.";
                         return View();
                     }
+
+                    // Save payment to PaymentService (existing behavior)
                     var model = new TransactionModel
                     {
                         CartId = cart.Id,
@@ -90,6 +102,9 @@ namespace eShopFlix.Web.Controllers
                     bool result = await _paymentServiceClient.SavePaymentDetailsAsync(model);
                     if (result)
                     {
+                        // Create order in OrderService from the cart
+                        await CreateOrderFromCartAsync(cart, paymentId, transactionId, currency, model);
+
                         await _cartServiceClient.MakeCartInActiveAsync(cart.Id);
                         TempData.Set("Receipt", model);
                         return RedirectToAction("Receipt");
@@ -98,6 +113,88 @@ namespace eShopFlix.Web.Controllers
             }
             ViewBag.Message = "Due to some technical issues we are not able to receive order details. We will contact you soon..";
             return View();
+        }
+
+        /// <summary>
+        /// Creates an order in OrderService from the finalized cart and records the payment against it.
+        /// This is best-effort: if OrderService is down, the payment receipt is still shown
+        /// and the order can be reconciled later from the PaymentService transaction record.
+        /// </summary>
+        private async Task CreateOrderFromCartAsync(
+            CartModel cart, string paymentId, string transactionId, string currency, TransactionModel model)
+        {
+            try
+            {
+                // Build address JSON from checkout TempData if available
+                string? shippingAddressJson = null;
+                var address = TempData.Peek<AddressModel>("Address");
+                if (address != null)
+                {
+                    shippingAddressJson = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        FirstName = CurrentUser!.Name,
+                        LastName = string.Empty,
+                        AddressLine1 = address.Street,
+                        AddressLine2 = address.Locality,
+                        City = address.City,
+                        PostalCode = address.ZipCode,
+                        CountryCode = "IN",
+                        Phone = address.PhoneNumber
+                    });
+                }
+
+                // Create the order — CartId is Guid in OrderService, so we create a deterministic one
+                var cartGuid = CreateDeterministicGuid(cart.Id);
+                var customerGuid = CreateDeterministicGuid(CurrentUser!.UserId);
+
+                var orderResult = await _orderServiceClient.CreateFromCartAsync(
+                    cartId: cartGuid,
+                    customerId: customerGuid,
+                    customerEmail: CurrentUser.Email,
+                    orderSource: "Web",
+                    shippingAddressJson: shippingAddressJson,
+                    paymentMethod: "Razorpay");
+
+                if (orderResult is { IsSuccess: true, OrderId: not null })
+                {
+                    model.OrderId = orderResult.OrderId;
+                    model.OrderNumber = orderResult.OrderNumber;
+
+                    _logger.LogInformation(
+                        "Order {OrderNumber} created for CartId {CartId}, PaymentId {PaymentId}",
+                        orderResult.OrderNumber, cart.Id, paymentId);
+
+                    // Record the payment against the order in OrderService
+                    await _orderServiceClient.ProcessPaymentAsync(
+                        orderId: orderResult.OrderId.Value,
+                        paymentMethod: "Razorpay",
+                        paymentProvider: "Razorpay",
+                        amount: cart.GrandTotal,
+                        transactionId: paymentId);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Order creation returned non-success for CartId {CartId}: {Message}",
+                        cart.Id, orderResult?.Message ?? "null response");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Best-effort: log but don't fail the payment receipt flow
+                _logger.LogError(ex,
+                    "Failed to create order for CartId {CartId}. Payment {PaymentId} was captured successfully. Manual reconciliation may be needed.",
+                    cart.Id, paymentId);
+            }
+        }
+
+        private static Guid CreateDeterministicGuid(long id)
+        {
+            var bytes = new byte[16];
+            BitConverter.GetBytes(id).CopyTo(bytes, 0);
+            bytes[8] = 0xE5; // eShop marker
+            bytes[9] = 0x0F; // Flix marker
+            return new Guid(bytes);
         }
 
         public IActionResult Receipt()

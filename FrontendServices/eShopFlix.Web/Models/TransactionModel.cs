@@ -13,5 +13,7 @@
         public decimal GrandTotal { get; set; }
         public DateTime CreatedDate { get; set; }
         public long UserId { get; set; }
+        public Guid? OrderId { get; set; }
+        public string? OrderNumber { get; set; }
     }
 }

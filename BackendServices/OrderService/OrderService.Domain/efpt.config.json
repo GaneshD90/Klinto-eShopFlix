@@ -1,6 +1,6 @@
 ﻿{
    "CodeGenerationMode": 4,
-   "ContextClassName": "OrderServiceContext",
+   "ContextClassName": "OrderServiceDbContext",
    "ContextNamespace": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
@@ -16,7 +16,79 @@
    "T4TemplatePath": null,
    "Tables": [
       {
+         "Name": "[dbo].[InboxMessages]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderAddresses]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderAdjustments]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderCancellations]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderDiscounts]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderDocuments]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderFraudChecks]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderFulfillmentAssignments]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderGiftCards]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderHolds]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderItemOptions]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[OrderItems]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderLoyaltyPoints]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderMetrics]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderNotes]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderPayments]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderRefunds]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderReturnItems]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderReturns]",
          "ObjectType": 0
       },
       {
@@ -24,8 +96,88 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[OrderShipmentItems]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderShipments]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[OrderState]",
          "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderStatusHistory]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderSubscriptions]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderTaxes]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderTimeline]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OutboxMessages]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[vw_CustomerOrderHistory]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_DailyOrderMetrics]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_FraudRiskDashboard]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_FulfillmentPerformance]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_OrderHoldManagement]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_OrderSummary]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_PaymentAnalysis]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_PendingOrdersActions]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ProductOrderPerformance]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ReturnManagement]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_RevenueAnalysis]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ShipmentTracking]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_SubscriptionAnalysis]",
+         "ObjectType": 3
       }
    ],
    "UiHint": null,

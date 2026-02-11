@@ -13,6 +13,18 @@
       "UpstreamHttpMethod": [ "GET", "Post" ]
     },
     {
+      "DownstreamPathTemplate": "/api/order/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7166
+        }
+      ],
+      "UpstreamPathTemplate": "/order/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/products/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [

@@ -1,0 +1,76 @@
+@using eShopFlix.Web.Models.Stock
+@model IReadOnlyList<WarehouseModel>
+@{
+    ViewData["Title"] = "Warehouses";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <a asp-action="Index" class="text-decoration-none small">? Back to Stock</a>
+        <h2 class="mb-0 mt-1">Warehouses</h2>
+    </div>
+    <span class="text-muted">@Model.Count warehouse(s)</span>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <h5 class="text-muted">No warehouses configured.</h5>
+            <p class="text-muted small">Warehouses can be created via the StockService API.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var wh in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">@wh.WarehouseName</h6>
+                        <span class="badge @wh.StatusBadgeClass">@wh.StatusText</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <span class="badge @wh.TypeBadgeClass">@wh.Type</span>
+                            <span class="badge bg-secondary ms-1">Code: @wh.WarehouseCode</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(wh.Address))
+                        {
+                            <div class="small text-muted mb-2">?? @wh.Address</div>
+                        }
+                        <div class="row g-2 small">
+                            <div class="col-6">
+                                <span class="text-muted">Priority:</span> @wh.Priority
+                            </div>
+                            @if (wh.Capacity.HasValue)
+                            {
+                                <div class="col-6">
+                                    <span class="text-muted">Capacity:</span> @wh.Capacity.Value.ToString("N0")
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(wh.OperatingHours))
+                            {
+                                <div class="col-12">
+                                    <span class="text-muted">Hours:</span> @wh.OperatingHours
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(wh.ContactDetails))
+                            {
+                                <div class="col-12">
+                                    <span class="text-muted">Contact:</span> @wh.ContactDetails
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a asp-action="WarehouseStock" asp-route-id="@wh.WarehouseId"
+                           class="btn btn-sm btn-outline-primary w-100">View Stock Items</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

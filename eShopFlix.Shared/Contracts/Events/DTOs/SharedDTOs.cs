@@ -5,4 +5,14 @@
     public record OrderLineDto(int ProductId, int Quantity, decimal UnitPrice);
     public record UserDto(long UserId, string? Email = null, string? FullName = null);
     public record AddressDto(string Street, string City, string State, string PostalCode, string Country);
+
+    /// <summary>V2 order line with Guid-based IDs for OrderService compatibility.</summary>
+    public record OrderLineV2Dto(
+        Guid ProductId,
+        Guid? VariationId,
+        string ProductName,
+        string Sku,
+        int Quantity,
+        decimal UnitPrice,
+        decimal TotalPrice);
 }

@@ -7,17 +7,61 @@ namespace OrderService.Domain.Entities;
 
 public partial class OrderItem
 {
-    public int Id { get; set; }
-
-    public int ItemId { get; set; }
-
-    public decimal UnitPrice { get; set; }
-
-    public int Quantity { get; set; }
-
-    public decimal Total { get; set; }
+    public Guid OrderItemId { get; set; }
 
     public Guid OrderId { get; set; }
 
+    public Guid ProductId { get; set; }
+
+    public Guid? VariationId { get; set; }
+
+    public string ProductName { get; set; }
+
+    public string Sku { get; set; }
+
+    public int Quantity { get; set; }
+
+    public decimal UnitPrice { get; set; }
+
+    public decimal OriginalPrice { get; set; }
+
+    public decimal DiscountAmount { get; set; }
+
+    public decimal TaxAmount { get; set; }
+
+    public decimal TotalPrice { get; set; }
+
+    public string ItemStatus { get; set; }
+
+    public Guid? StockReservationId { get; set; }
+
+    public Guid? WarehouseId { get; set; }
+
+    public bool IsGift { get; set; }
+
+    public string GiftMessage { get; set; }
+
+    public string CustomizationDetails { get; set; }
+
+    public string ProductSnapshot { get; set; }
+
+    public byte[] RowVersion { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+
     public virtual Order Order { get; set; }
+
+    public virtual ICollection<OrderDiscount> OrderDiscounts { get; set; } = new List<OrderDiscount>();
+
+    public virtual ICollection<OrderFulfillmentAssignment> OrderFulfillmentAssignments { get; set; } = new List<OrderFulfillmentAssignment>();
+
+    public virtual ICollection<OrderItemOption> OrderItemOptions { get; set; } = new List<OrderItemOption>();
+
+    public virtual ICollection<OrderReturnItem> OrderReturnItems { get; set; } = new List<OrderReturnItem>();
+
+    public virtual ICollection<OrderShipmentItem> OrderShipmentItems { get; set; } = new List<OrderShipmentItem>();
+
+    public virtual ICollection<OrderTaxis> OrderTaxes { get; set; } = new List<OrderTaxis>();
 }

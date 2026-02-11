@@ -1,0 +1,186 @@
+@using eShopFlix.Web.Models.Stock
+@model IReadOnlyList<StockItemModel>
+@{
+    var warehouse = ViewBag.Warehouse as WarehouseModel;
+    ViewData["Title"] = $"Stock - {warehouse?.WarehouseName}";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <a asp-action="Warehouses" class="text-decoration-none small">? Back to Warehouses</a>
+        <h2 class="mb-0 mt-1">@warehouse?.WarehouseName</h2>
+        <div class="text-muted small">
+            <span class="badge @(warehouse?.TypeBadgeClass ?? "bg-secondary")">@warehouse?.Type</span>
+            <span class="badge bg-secondary ms-1">@warehouse?.WarehouseCode</span>
+            <span class="badge @(warehouse?.StatusBadgeClass ?? "bg-secondary") ms-1">@warehouse?.StatusText</span>
+        </div>
+    </div>
+    <span class="text-muted">@Model.Count item(s)</span>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Total Available</div>
+                <div class="fs-4 fw-bold text-success">@Model.Sum(i => i.AvailableQuantity).ToString("N0")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Reserved</div>
+                <div class="fs-4 fw-bold text-primary">@Model.Sum(i => i.ReservedQuantity).ToString("N0")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Low Stock</div>
+                <div class="fs-4 fw-bold text-danger">@Model.Count(i => i.IsLowStock)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Total Value</div>
+                <div class="fs-4 fw-bold">?@((Model.Sum(i => i.TotalValue ?? 0)).ToString("N0"))</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <h5 class="text-muted">No stock items in this warehouse.</h5>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>SKU</th>
+                        <th>Bin</th>
+                        <th class="text-center">Available</th>
+                        <th class="text-center">Reserved</th>
+                        <th class="text-center">In Transit</th>
+                        <th class="text-center">Damaged</th>
+                        <th class="text-center">Min</th>
+                        <th class="text-center">Max</th>
+                        <th>Unit Cost</th>
+                        <th>Status</th>
+                        <th>Last Restocked</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderByDescending(i => i.IsLowStock).ThenBy(i => i.Sku))
+                    {
+                        <tr class="@(item.IsLowStock ? "table-danger" : item.IsOverStock ? "table-warning" : "")">
+                            <td class="fw-semibold">@(item.Sku ?? "—")</td>
+                            <td class="text-muted small">@(item.BinLocation ?? "—")</td>
+                            <td class="text-center fw-bold">@item.AvailableQuantity</td>
+                            <td class="text-center">@item.ReservedQuantity</td>
+                            <td class="text-center">@item.InTransitQuantity</td>
+                            <td class="text-center">@item.DamagedQuantity</td>
+                            <td class="text-center text-muted">@(item.MinimumStockLevel?.ToString() ?? "—")</td>
+                            <td class="text-center text-muted">@(item.MaximumStockLevel?.ToString() ?? "—")</td>
+                            <td>@(item.UnitCost.HasValue ? $"?{item.UnitCost:N2}" : "—")</td>
+                            <td><span class="badge @item.StockStatusBadgeClass">@item.StockStatusText</span></td>
+                            <td class="text-muted small">@(item.LastRestockedAt?.ToString("dd MMM") ?? "—")</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-success" data-bs-toggle="modal"
+                                            data-bs-target="#adjustModal"
+                                            data-stockitemid="@item.StockItemId"
+                                            data-sku="@item.Sku"
+                                            data-action="increase">+</button>
+                                    <button class="btn btn-outline-danger" data-bs-toggle="modal"
+                                            data-bs-target="#adjustModal"
+                                            data-stockitemid="@item.StockItemId"
+                                            data-sku="@item.Sku"
+                                            data-action="decrease">?</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Adjust Stock Modal -->
+<div class="modal fade" id="adjustModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="adjustForm" method="post">
+                <input type="hidden" name="stockItemId" id="modalStockItemId" />
+                <input type="hidden" name="warehouseId" value="@warehouse?.WarehouseId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Adjust Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">SKU</label>
+                        <input type="text" class="form-control" id="modalSku" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" name="quantity" class="form-control" min="1" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <textarea name="reason" class="form-control" rows="2" required
+                                  placeholder="Enter reason for adjustment..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Adjust</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById('adjustModal').addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        var stockItemId = btn.getAttribute('data-stockitemid');
+        var sku = btn.getAttribute('data-sku');
+        var action = btn.getAttribute('data-action');
+
+        document.getElementById('modalStockItemId').value = stockItemId;
+        document.getElementById('modalSku').value = sku || '—';
+
+        var form = document.getElementById('adjustForm');
+        var title = document.getElementById('modalTitle');
+        var submitBtn = document.getElementById('modalSubmitBtn');
+
+        if (action === 'increase') {
+            form.action = '@Url.Action("IncreaseStock")';
+            title.textContent = 'Increase Stock';
+            submitBtn.textContent = 'Increase';
+            submitBtn.className = 'btn btn-success';
+        } else {
+            form.action = '@Url.Action("DecreaseStock")';
+            title.textContent = 'Decrease Stock';
+            submitBtn.textContent = 'Decrease';
+            submitBtn.className = 'btn btn-danger';
+        }
+    });
+</script>
+}

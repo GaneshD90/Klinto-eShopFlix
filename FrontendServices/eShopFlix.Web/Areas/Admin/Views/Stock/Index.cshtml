@@ -1,0 +1,152 @@
+@using eShopFlix.Web.Models.Stock
+@{
+    ViewData["Title"] = "Stock Management";
+    var warehouses = ViewBag.Warehouses as IReadOnlyList<WarehouseModel> ?? [];
+    var alerts = ViewBag.Alerts as IReadOnlyList<StockAlertModel> ?? [];
+    var lowStock = ViewBag.LowStock as IReadOnlyList<LowStockReportModel> ?? [];
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Stock Management</h2>
+    <div class="text-muted">@DateTime.UtcNow.ToString("dd MMM yyyy")</div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-muted">Warehouses</div>
+                        <div class="display-6">@warehouses.Count</div>
+                        <div class="small text-success">@warehouses.Count(w => w.IsActive) active</div>
+                    </div>
+                    <a asp-action="Warehouses" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-start border-danger border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-muted">Active Alerts</div>
+                        <div class="display-6">@alerts.Count</div>
+                        <div class="small text-danger">@alerts.Count(a => a.AlertType == "LowStock") low stock</div>
+                    </div>
+                    <a asp-action="Alerts" class="btn btn-sm btn-outline-danger">Review</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-muted">Low Stock Items</div>
+                        <div class="display-6">@lowStock.Count</div>
+                        @if (lowStock.Count > 0)
+                        {
+                            <div class="small text-warning">Needs attention</div>
+                        }
+                    </div>
+                    <a asp-action="LowStock" class="btn btn-sm btn-outline-warning">Report</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Warehouses Quick View -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Warehouses</h6>
+                <a asp-action="Warehouses" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body p-0">
+                @if (warehouses.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">No warehouses configured.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var wh in warehouses.Take(5))
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@wh.WarehouseName</td>
+                                        <td class="text-muted small">@wh.WarehouseCode</td>
+                                        <td><span class="badge @wh.TypeBadgeClass">@wh.Type</span></td>
+                                        <td>@wh.Priority</td>
+                                        <td><span class="badge @wh.StatusBadgeClass">@wh.StatusText</span></td>
+                                        <td class="text-end">
+                                            <a asp-action="WarehouseStock" asp-route-id="@wh.WarehouseId"
+                                               class="btn btn-sm btn-outline-secondary">Stock</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Alerts</h6>
+                <a asp-action="Alerts" class="btn btn-sm btn-outline-danger">All Alerts</a>
+            </div>
+            <div class="card-body p-0">
+                @if (alerts.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">No active alerts. All clear!</div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var alert in alerts.Take(5))
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="badge @alert.AlertBadgeClass me-1">@alert.AlertType</span>
+                                        <span class="small">@alert.Message</span>
+                                    </div>
+                                    <span class="badge @alert.StatusBadgeClass">@alert.AlertStatus</span>
+                                </div>
+                                <div class="text-muted small mt-1">
+                                    @alert.TriggeredAt.ToString("dd MMM HH:mm")
+                                    @if (!string.IsNullOrEmpty(alert.WarehouseName))
+                                    {
+                                        <span>· @alert.WarehouseName</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

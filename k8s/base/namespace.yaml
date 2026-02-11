@@ -1,0 +1,8 @@
+# eShopFlix Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eshopflix
+  labels:
+    app.kubernetes.io/name: eshopflix
+    app.kubernetes.io/part-of: eshopflix-microservices

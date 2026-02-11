@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using OrderService.Domain.Entities;
+using OrderService.Infrastructure.Models;
 
 namespace OrderService.Infrastructure.Persistence;
 
@@ -15,25 +16,155 @@ public partial class OrderServiceDbContext : DbContext
     }
 
     public virtual DbSet<Order> Orders { get; set; }
-        
+
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
     public virtual DbSet<OrderState> OrderStates { get; set; }
+
+    public virtual DbSet<VwCustomerOrderHistory> VwCustomerOrderHistories { get; set; }
+
+    public virtual DbSet<VwDailyOrderMetric> VwDailyOrderMetrics { get; set; }
+
+    public virtual DbSet<VwFraudRiskDashboard> VwFraudRiskDashboards { get; set; }
+
+    public virtual DbSet<VwFulfillmentPerformance> VwFulfillmentPerformances { get; set; }
+
+    public virtual DbSet<VwOrderHoldManagement> VwOrderHoldManagements { get; set; }
+
+    public virtual DbSet<VwOrderSummary> VwOrderSummaries { get; set; }
+
+    public virtual DbSet<VwPaymentAnalysis> VwPaymentAnalyses { get; set; }
+
+    public virtual DbSet<VwPendingOrdersAction> VwPendingOrdersActions { get; set; }
+
+    public virtual DbSet<VwProductOrderPerformance> VwProductOrderPerformances { get; set; }
+
+    public virtual DbSet<VwReturnManagement> VwReturnManagements { get; set; }
+
+    public virtual DbSet<VwRevenueAnalysis> VwRevenueAnalyses { get; set; }
+
+    public virtual DbSet<VwShipmentTracking> VwShipmentTrackings { get; set; }
+
+    public virtual DbSet<VwSubscriptionAnalysis> VwSubscriptionAnalyses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.Property(e => e.OrderId).ValueGeneratedNever();
-            entity.Property(e => e.AcceptDate).HasColumnType("datetime");
-            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.PaymentId).IsRequired();
+            entity.ToTable(tb => tb.HasTrigger("trg_Orders_CreateTimelineEvents"));
+
+            entity.HasIndex(e => e.CartId, "IX_Orders_CartId").HasFilter("([CartId] IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.CustomerId, e.OrderDate }, "IX_Orders_CustomerId").IsDescending(false, true);
+
+            entity.HasIndex(e => e.CustomerEmail, "IX_Orders_Email");
+
+            entity.HasIndex(e => e.FulfillmentStatus, "IX_Orders_FulfillmentStatus");
+
+            entity.HasIndex(e => e.OrderDate, "IX_Orders_OrderDate").IsDescending();
+
+            entity.HasIndex(e => new { e.OrderStatus, e.OrderDate }, "IX_Orders_OrderStatus").IsDescending(false, true);
+
+            entity.HasIndex(e => e.PaymentStatus, "IX_Orders_PaymentStatus");
+
+            entity.HasIndex(e => new { e.Priority, e.OrderStatus }, "IX_Orders_Priority");
+
+            entity.HasIndex(e => e.OrderNumber, "UQ_Orders_Number").IsUnique();
+
+            entity.Property(e => e.OrderId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AdjustmentAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.CurrencyCode)
+                .IsRequired()
+                .HasMaxLength(3)
+                .HasDefaultValue("USD");
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.CustomerPhone).HasMaxLength(50);
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ExchangeRate)
+                .HasDefaultValue(1.0m)
+                .HasColumnType("decimal(18, 6)");
+            entity.Property(e => e.FulfillmentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.Ipaddress)
+                .HasMaxLength(45)
+                .HasColumnName("IPAddress");
+            entity.Property(e => e.OrderDate).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderSource)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderType)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasDefaultValue("Standard");
+            entity.Property(e => e.PaymentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.Priority)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValue("Normal");
+            entity.Property(e => e.RowVersion)
+                .IsRequired()
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.ShippingAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SubtotalAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
         });
 
         modelBuilder.Entity<OrderItem>(entity =>
         {
-            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
+            entity.ToTable(tb =>
+                {
+                    tb.HasTrigger("trg_OrderItems_CalculateTotals");
+                    tb.HasTrigger("trg_OrderItems_PreventModification");
+                    tb.HasTrigger("trg_OrderItems_UpdateOrderStatus");
+                });
+
+            entity.HasIndex(e => e.OrderId, "IX_OrderItems_OrderId");
+
+            entity.HasIndex(e => e.ProductId, "IX_OrderItems_ProductId");
+
+            entity.HasIndex(e => e.StockReservationId, "IX_OrderItems_ReservationId").HasFilter("([StockReservationId] IS NOT NULL)");
+
+            entity.HasIndex(e => e.ItemStatus, "IX_OrderItems_Status");
+
+            entity.Property(e => e.OrderItemId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.GiftMessage).HasMaxLength(500);
+            entity.Property(e => e.ItemStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OriginalPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ProductName)
+                .IsRequired()
+                .HasMaxLength(500);
+            entity.Property(e => e.RowVersion)
+                .IsRequired()
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.Sku)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasColumnName("SKU");
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.TotalPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getutcdate())");
 
             entity.HasOne(d => d.Order).WithMany(p => p.OrderItems)
                 .HasForeignKey(d => d.OrderId)
@@ -54,6 +185,316 @@ public partial class OrderServiceDbContext : DbContext
             entity.Property(e => e.OrderCreationDateTime).HasColumnType("datetime");
             entity.Property(e => e.PaymentId).HasMaxLength(100);
             entity.Property(e => e.Products).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<VwCustomerOrderHistory>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_CustomerOrderHistory");
+
+            entity.Property(e => e.AverageOrderValue).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.CustomerSegment)
+                .IsRequired()
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.TotalSpent).HasColumnType("decimal(38, 4)");
+        });
+
+        modelBuilder.Entity<VwDailyOrderMetric>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_DailyOrderMetrics");
+
+            entity.Property(e => e.AverageOrderValue).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.CancellationRate).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.TotalRevenue).HasColumnType("decimal(38, 4)");
+        });
+
+        modelBuilder.Entity<VwFraudRiskDashboard>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_FraudRiskDashboard");
+
+            entity.Property(e => e.CheckStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.FraudStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.RecommendedAction).HasMaxLength(50);
+            entity.Property(e => e.RiskLevel)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.RiskScore).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 4)");
+        });
+
+        modelBuilder.Entity<VwFulfillmentPerformance>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_FulfillmentPerformance");
+
+            entity.Property(e => e.FulfillmentRate).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.OnTimeRate).HasColumnType("decimal(5, 2)");
+        });
+
+        modelBuilder.Entity<VwOrderHoldManagement>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_OrderHoldManagement");
+
+            entity.Property(e => e.CurrentHoldStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.HoldReason)
+                .IsRequired()
+                .HasMaxLength(500);
+            entity.Property(e => e.HoldStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.HoldType)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.UrgencyLevel)
+                .HasMaxLength(6)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<VwOrderSummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_OrderSummary");
+
+            entity.Property(e => e.CurrencyCode)
+                .IsRequired()
+                .HasMaxLength(3);
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.FulfillmentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderSource)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderStage)
+                .IsRequired()
+                .HasMaxLength(16)
+                .IsUnicode(false);
+            entity.Property(e => e.OrderStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderType)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.PaymentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.Priority)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 4)");
+        });
+
+        modelBuilder.Entity<VwPaymentAnalysis>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_PaymentAnalysis");
+
+            entity.Property(e => e.AverageRiskScore).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.AverageTransactionAmount).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.CardType).HasMaxLength(50);
+            entity.Property(e => e.FailedAmount).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.PaymentMethod)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.PaymentProvider).HasMaxLength(100);
+            entity.Property(e => e.SuccessRate).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.SuccessfulAmount).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.TotalRefunded).HasColumnType("decimal(38, 4)");
+        });
+
+        modelBuilder.Entity<VwPendingOrdersAction>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_PendingOrdersActions");
+
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.FulfillmentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.PaymentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.PriorityLevel)
+                .IsRequired()
+                .HasMaxLength(6)
+                .IsUnicode(false);
+            entity.Property(e => e.RequiredAction)
+                .IsRequired()
+                .HasMaxLength(16)
+                .IsUnicode(false);
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 4)");
+        });
+
+        modelBuilder.Entity<VwProductOrderPerformance>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ProductOrderPerformance");
+
+            entity.Property(e => e.AveragePrice).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.ProductName)
+                .IsRequired()
+                .HasMaxLength(500);
+            entity.Property(e => e.ReturnRate).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.Sku)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasColumnName("SKU");
+            entity.Property(e => e.TotalDiscounts).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.TotalRevenue).HasColumnType("decimal(38, 4)");
+        });
+
+        modelBuilder.Entity<VwReturnManagement>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ReturnManagement");
+
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ProcessStage)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.QualityCheckStatus).HasMaxLength(50);
+            entity.Property(e => e.RefundAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ReturnNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ReturnReason)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ReturnStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ReturnType)
+                .IsRequired()
+                .HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<VwRevenueAnalysis>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RevenueAnalysis");
+
+            entity.Property(e => e.AverageOrderValue).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.GrossRevenue).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.LostRevenue).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.MonthName).HasMaxLength(30);
+            entity.Property(e => e.NetRevenue).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.OrderSource)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderType)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.RepeatCustomerRate).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.TotalDiscounts).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.TotalShipping).HasColumnType("decimal(38, 4)");
+            entity.Property(e => e.TotalTaxes).HasColumnType("decimal(38, 4)");
+        });
+
+        modelBuilder.Entity<VwShipmentTracking>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ShipmentTracking");
+
+            entity.Property(e => e.CarrierName).HasMaxLength(100);
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.DeliveryStatus)
+                .IsRequired()
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ShipmentNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ShipmentStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ShippingCity).HasMaxLength(100);
+            entity.Property(e => e.ShippingCountry).HasMaxLength(3);
+            entity.Property(e => e.ShippingState).HasMaxLength(100);
+            entity.Property(e => e.TrackingNumber).HasMaxLength(200);
+            entity.Property(e => e.TrackingUrl).HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<VwSubscriptionAnalysis>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_SubscriptionAnalysis");
+
+            entity.Property(e => e.CustomerEmail)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.Frequency)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.OrderAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SubscriptionHealth)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.SubscriptionStatus)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.TotalSubscriptionValue).HasColumnType("decimal(29, 4)");
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -1,29 +1,153 @@
-﻿@{
-    ViewData["Title"] = "User Dashboard";
+﻿@using eShopFlix.Web.Models.Order
+@{
+    ViewData["Title"] = "My Dashboard";
+    var recentOrders = ViewBag.RecentOrders as IReadOnlyList<OrderListItemModel> ?? [];
+    var totalOrders = (int)(ViewBag.TotalOrders ?? 0);
+    var activeOrders = (int)(ViewBag.ActiveOrders ?? 0);
+    var totalSpent = (decimal)(ViewBag.TotalSpent ?? 0m);
 }
 
-<div class="row g-3">
-    <div class="col-12">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <h2 class="mb-0">Welcome back</h2>
-            <div class="text-muted">@DateTime.UtcNow.ToString("dd MMM yyyy")</div>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Welcome back, @CurrentUser?.Name</h2>
+    <div class="text-muted">@DateTime.UtcNow.ToString("dd MMM yyyy")</div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-muted">Total Orders</div>
+                        <div class="display-6">@totalOrders</div>
+                    </div>
+                    <a asp-area="User" asp-controller="Orders" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="col-md-6">
-        <div class="card shadow-sm">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-start border-success border-4">
             <div class="card-body">
-                <h6 class="mb-3">Recent Orders</h6>
-                <div class="text-muted">No recent orders to show.</div>
+                <div class="small text-muted">Total Spent</div>
+                <div class="display-6">₹@totalSpent.ToString("N0")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-muted">Active Orders</div>
+                        <div class="display-6">@activeOrders</div>
+                    </div>
+                    @if (activeOrders > 0)
+                    {
+                        <a asp-area="User" asp-controller="Orders" asp-action="Index" asp-route-status="Processing"
+                           class="btn btn-sm btn-outline-warning">Track</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Recent Orders</h6>
+                <a asp-area="User" asp-controller="Orders" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                @if (recentOrders.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">
+                        <p class="mb-2">No orders yet.</p>
+                        <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-primary btn-sm">Start Shopping</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in recentOrders)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@order.OrderNumber</td>
+                                        <td class="text-muted small">@order.OrderDate.ToString("dd MMM yyyy")</td>
+                                        <td><span class="badge @order.StatusBadgeClass">@order.OrderStatus</span></td>
+                                        <td class="text-end">@order.CurrencyCode @order.TotalAmount.ToString("N2")</td>
+                                        <td class="text-end">
+                                            <a asp-area="User" asp-controller="Orders" asp-action="Details" asp-route-id="@order.OrderId"
+                                               class="btn btn-sm btn-outline-secondary">View</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="mb-3">Quick Links</h6>
+                <div class="d-grid gap-2">
+                    <a asp-area="User" asp-controller="Orders" asp-action="Index" class="btn btn-outline-primary btn-sm text-start">
+                        📦 My Orders
+                    </a>
+                    <a asp-area="" asp-controller="Cart" asp-action="Index" class="btn btn-outline-primary btn-sm text-start">
+                        🛒 My Cart
+                    </a>
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-sm text-start">
+                        🔍 Browse Products
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Status Quick Filters -->
         <div class="card shadow-sm">
             <div class="card-body">
-                <h6 class="mb-3">Saved Addresses</h6>
-                <div class="text-muted">Add an address during checkout to save it here.</div>
+                <h6 class="mb-3">Filter by Status</h6>
+                <div class="d-grid gap-2">
+                    <a asp-area="User" asp-controller="Orders" asp-action="Index" asp-route-status="Pending"
+                       class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between">
+                        <span>⏳ Pending</span>
+                        <span class="badge bg-secondary">@recentOrders.Count(o => o.OrderStatus == "Pending")</span>
+                    </a>
+                    <a asp-area="User" asp-controller="Orders" asp-action="Index" asp-route-status="Processing"
+                       class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between">
+                        <span>⚙ Processing</span>
+                        <span class="badge bg-primary">@recentOrders.Count(o => o.OrderStatus is "Processing" or "Confirmed")</span>
+                    </a>
+                    <a asp-area="User" asp-controller="Orders" asp-action="Index" asp-route-status="Shipped"
+                       class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between">
+                        <span>🚚 Shipped</span>
+                        <span class="badge bg-info text-dark">@recentOrders.Count(o => o.OrderStatus == "Shipped")</span>
+                    </a>
+                    <a asp-area="User" asp-controller="Orders" asp-action="Index" asp-route-status="Delivered"
+                       class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between">
+                        <span>✅ Delivered</span>
+                        <span class="badge bg-success">@recentOrders.Count(o => o.OrderStatus == "Delivered")</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

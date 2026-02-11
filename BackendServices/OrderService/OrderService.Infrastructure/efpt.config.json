@@ -1,6 +1,6 @@
 ﻿{
    "CodeGenerationMode": 4,
-   "ContextClassName": "OrderServiceContext",
+   "ContextClassName": "OrderServiceDbContext",
    "ContextNamespace": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
@@ -26,6 +26,122 @@
       {
          "Name": "[dbo].[OrderState]",
          "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[vw_CustomerOrderHistory]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_DailyOrderMetrics]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_FraudRiskDashboard]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_FulfillmentPerformance]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_OrderHoldManagement]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_OrderSummary]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_PaymentAnalysis]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_PendingOrdersActions]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ProductOrderPerformance]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ReturnManagement]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_RevenueAnalysis]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ShipmentTracking]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_SubscriptionAnalysis]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[SP_AddOrderItems]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_CancelOrder]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_ConfirmOrder]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_CreateOrderFromCart]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_CreateReturnRequest]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_CreateShipment]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_CreateSubscriptionOrder]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_GetOrderDetails]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_MarkOrderDelivered]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_PerformFraudCheck]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_PlaceOrderOnHold]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_ProcessNextSubscriptionOrder]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_ProcessPayment]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_ProcessRefund]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_ReleaseOrderHold]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SP_ShipOrder]",
+         "ObjectType": 1
       }
    ],
    "UiHint": null,

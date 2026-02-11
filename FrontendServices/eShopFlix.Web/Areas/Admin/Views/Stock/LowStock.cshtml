@@ -1,0 +1,78 @@
+@using eShopFlix.Web.Models.Stock
+@model IReadOnlyList<LowStockReportModel>
+@{
+    ViewData["Title"] = "Low Stock Report";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <a asp-action="Index" class="text-decoration-none small">? Back to Stock</a>
+        <h2 class="mb-0 mt-1">Low Stock Report</h2>
+    </div>
+    <span class="text-muted">@Model.Count item(s) below minimum</span>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="display-1 mb-3">?</div>
+            <h5 class="text-muted">No low stock items</h5>
+            <p class="text-muted small">All stock levels are above their minimum thresholds.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Warehouse ID</th>
+                        <th class="text-center">Available</th>
+                        <th class="text-center">Min Level</th>
+                        <th class="text-center">Shortfall</th>
+                        <th>Severity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderByDescending(i => i.ShortfallQuantity))
+                    {
+                        <tr class="@item.SeverityClass">
+                            <td class="small">@item.ProductId.ToString()[..8]…</td>
+                            <td class="small">@item.WarehouseId.ToString()[..8]…</td>
+                            <td class="text-center fw-bold text-danger">@item.AvailableQuantity</td>
+                            <td class="text-center">@item.MinimumStockLevel</td>
+                            <td class="text-center fw-bold">@item.ShortfallQuantity</td>
+                            <td>
+                                @if (item.ShortfallQuantity > 50)
+                                {
+                                    <span class="badge bg-danger">Critical</span>
+                                }
+                                else if (item.ShortfallQuantity > 20)
+                                {
+                                    <span class="badge bg-warning text-dark">Warning</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info text-dark">Low</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-3">
+        <div class="card-body small">
+            <h6>Legend</h6>
+            <span class="badge bg-danger me-2">Critical</span> Shortfall &gt; 50 units
+            <span class="badge bg-warning text-dark mx-2">Warning</span> Shortfall &gt; 20 units
+            <span class="badge bg-info text-dark mx-2">Low</span> Shortfall ? 20 units
+        </div>
+    </div>
+}

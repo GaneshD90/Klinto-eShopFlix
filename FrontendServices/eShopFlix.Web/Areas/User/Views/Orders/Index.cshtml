@@ -1,0 +1,121 @@
+@using eShopFlix.Web.Models.Order
+@model PagedResultModel<OrderListItemModel>
+@{
+    ViewData["Title"] = "My Orders";
+    var statusFilter = ViewBag.StatusFilter as string;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">My Orders</h2>
+    <span class="text-muted">@Model.TotalCount order(s)</span>
+</div>
+
+<!-- Status Filter Tabs -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(string.IsNullOrEmpty(statusFilter) ? "active" : "")"
+           asp-action="Index">All</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(statusFilter == "Pending" ? "active" : "")"
+           asp-action="Index" asp-route-status="Pending">Pending</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(statusFilter == "Processing" ? "active" : "")"
+           asp-action="Index" asp-route-status="Processing">Processing</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(statusFilter == "Shipped" ? "active" : "")"
+           asp-action="Index" asp-route-status="Shipped">Shipped</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(statusFilter == "Delivered" ? "active" : "")"
+           asp-action="Index" asp-route-status="Delivered">Delivered</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(statusFilter == "Cancelled" ? "active" : "")"
+           asp-action="Index" asp-route-status="Cancelled">Cancelled</a>
+    </li>
+</ul>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            @if (!string.IsNullOrEmpty(statusFilter))
+            {
+                <h5 class="text-muted mb-3">No @statusFilter.ToLower() orders</h5>
+                <a asp-action="Index" class="btn btn-outline-primary">View All Orders</a>
+            }
+            else
+            {
+                <h5 class="text-muted mb-3">You haven't placed any orders yet</h5>
+                <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-primary">Start Shopping</a>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th>Fulfillment</th>
+                        <th class="text-end">Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@order.OrderNumber</td>
+                            <td class="text-muted small">@order.OrderDate.ToString("dd MMM yyyy")</td>
+                            <td>@order.ItemCount</td>
+                            <td><span class="badge @order.StatusBadgeClass">@order.OrderStatus</span></td>
+                            <td><span class="badge bg-secondary">@order.PaymentStatus</span></td>
+                            <td><span class="badge bg-secondary">@order.FulfillmentStatus</span></td>
+                            <td class="text-end fw-semibold">@order.CurrencyCode @order.TotalAmount.ToString("N2")</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Details" asp-route-id="@order.OrderId" class="btn btn-outline-primary">Details</a>
+                                    <a asp-action="Track" asp-route-id="@order.OrderId" class="btn btn-outline-secondary">Track</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-3" aria-label="Order pagination">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)"
+                       asp-route-status="@statusFilter">Previous</a>
+                </li>
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@i"
+                           asp-route-status="@statusFilter">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)"
+                       asp-route-status="@statusFilter">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

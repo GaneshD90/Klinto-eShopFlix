@@ -9,23 +9,109 @@ public partial class Order
 {
     public Guid OrderId { get; set; }
 
-    public string PaymentId { get; set; }
+    public string OrderNumber { get; set; }
 
-    public string Street { get; set; }
+    public Guid CustomerId { get; set; }
 
-    public string ZipCode { get; set; }
+    public Guid? CartId { get; set; }
 
-    public string City { get; set; }
+    public string OrderStatus { get; set; }
 
-    public string Locality { get; set; }
+    public string OrderType { get; set; }
 
-    public string PhoneNumber { get; set; }
+    public string OrderSource { get; set; }
 
-    public long UserId { get; set; }
+    public DateTime OrderDate { get; set; }
 
-    public DateTime CreatedDate { get; set; }
+    public DateTime? ConfirmedAt { get; set; }
 
-    public DateTime? AcceptDate { get; set; }
+    public DateTime? CompletedAt { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    public decimal SubtotalAmount { get; set; }
+
+    public decimal DiscountAmount { get; set; }
+
+    public decimal TaxAmount { get; set; }
+
+    public decimal ShippingAmount { get; set; }
+
+    public decimal AdjustmentAmount { get; set; }
+
+    public decimal TotalAmount { get; set; }
+
+    public string CurrencyCode { get; set; }
+
+    public decimal ExchangeRate { get; set; }
+
+    public string PaymentStatus { get; set; }
+
+    public string FulfillmentStatus { get; set; }
+
+    public string CustomerEmail { get; set; }
+
+    public string CustomerPhone { get; set; }
+
+    public string Ipaddress { get; set; }
+
+    public string UserAgent { get; set; }
+
+    public bool IsGuestCheckout { get; set; }
+
+    public string Priority { get; set; }
+
+    public string InternalNotes { get; set; }
+
+    public string CustomerNotes { get; set; }
+
+    public string Tags { get; set; }
+
+    public byte[] RowVersion { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+
+    public virtual ICollection<OrderAddress> OrderAddresses { get; set; } = new List<OrderAddress>();
+
+    public virtual ICollection<OrderAdjustment> OrderAdjustments { get; set; } = new List<OrderAdjustment>();
+
+    public virtual ICollection<OrderCancellation> OrderCancellations { get; set; } = new List<OrderCancellation>();
+
+    public virtual ICollection<OrderDiscount> OrderDiscounts { get; set; } = new List<OrderDiscount>();
+
+    public virtual ICollection<OrderDocument> OrderDocuments { get; set; } = new List<OrderDocument>();
+
+    public virtual ICollection<OrderFraudCheck> OrderFraudChecks { get; set; } = new List<OrderFraudCheck>();
+
+    public virtual ICollection<OrderFulfillmentAssignment> OrderFulfillmentAssignments { get; set; } = new List<OrderFulfillmentAssignment>();
+
+    public virtual ICollection<OrderGiftCard> OrderGiftCards { get; set; } = new List<OrderGiftCard>();
+
+    public virtual ICollection<OrderHold> OrderHolds { get; set; } = new List<OrderHold>();
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+    public virtual ICollection<OrderLoyaltyPoint> OrderLoyaltyPoints { get; set; } = new List<OrderLoyaltyPoint>();
+
+    public virtual ICollection<OrderMetric> OrderMetrics { get; set; } = new List<OrderMetric>();
+
+    public virtual ICollection<OrderNote> OrderNotes { get; set; } = new List<OrderNote>();
+
+    public virtual ICollection<OrderPayment> OrderPayments { get; set; } = new List<OrderPayment>();
+
+    public virtual ICollection<OrderRefund> OrderRefunds { get; set; } = new List<OrderRefund>();
+
+    public virtual ICollection<OrderReturn> OrderReturns { get; set; } = new List<OrderReturn>();
+
+    public virtual ICollection<OrderShipment> OrderShipments { get; set; } = new List<OrderShipment>();
+
+    public virtual ICollection<OrderStatusHistory> OrderStatusHistories { get; set; } = new List<OrderStatusHistory>();
+
+    public virtual ICollection<OrderSubscription> OrderSubscriptions { get; set; } = new List<OrderSubscription>();
+
+    public virtual ICollection<OrderTaxis> OrderTaxes { get; set; } = new List<OrderTaxis>();
+
+    public virtual ICollection<OrderTimeline> OrderTimelines { get; set; } = new List<OrderTimeline>();
 }

@@ -47,6 +47,11 @@ builder.Services.AddHttpClient<StockServiceClient>(client =>
     client.BaseAddress = new Uri(apiGatewayBase);
 }).AddHttpMessageHandler<JwtForwardingHandler>();
 
+builder.Services.AddHttpClient<OrderServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(apiGatewayBase);
+}).AddHttpMessageHandler<JwtForwardingHandler>();
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {

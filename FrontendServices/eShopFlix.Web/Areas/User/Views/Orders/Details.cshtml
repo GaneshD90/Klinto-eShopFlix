@@ -1,0 +1,267 @@
+@using eShopFlix.Web.Models.Order
+@model OrderDetailModel
+@{
+    ViewData["Title"] = $"Order {Model.OrderNumber}";
+    var payments = ViewBag.Payments as IReadOnlyList<OrderPaymentModel> ?? [];
+    var shipments = ViewBag.Shipments as IReadOnlyList<OrderShipmentModel> ?? [];
+    var timeline = ViewBag.Timeline as IReadOnlyList<OrderTimelineModel> ?? [];
+    var shippingAddr = Model.Addresses.FirstOrDefault(a => a.AddressType == "Shipping");
+    var billingAddr = Model.Addresses.FirstOrDefault(a => a.AddressType == "Billing");
+    var canCancel = Model.OrderStatus is "Pending" or "New";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <a asp-action="Index" class="text-decoration-none small">? Back to My Orders</a>
+        <h2 class="mb-0 mt-1">Order @Model.OrderNumber</h2>
+    </div>
+    <div class="text-end">
+        <span class="badge @Model.StatusBadgeClass fs-6">@Model.OrderStatus</span>
+        <div class="text-muted small mt-1">@Model.OrderDate.ToString("dd MMM yyyy, HH:mm")</div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Order Items -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><h6 class="mb-0">Items (@Model.Items.Count)</h6></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="fw-semibold">@item.ProductName</span>
+                                        @if (item.IsGift)
+                                        {
+                                            <span class="badge bg-info ms-1">Gift</span>
+                                        }
+                                    </td>
+                                    <td class="text-muted small">@item.Sku</td>
+                                    <td class="text-center">@item.Quantity</td>
+                                    <td class="text-end">@Model.CurrencyCode @item.UnitPrice.ToString("N2")</td>
+                                    <td class="text-end fw-semibold">@Model.CurrencyCode @item.TotalPrice.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancel Order (only for Pending/New) -->
+        @if (canCancel)
+        {
+            <div class="card shadow-sm mb-3 border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Need to cancel?</h6>
+                            <p class="text-muted small mb-0">You can cancel this order while it's still pending.</p>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            Cancel Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Timeline -->
+        @if (timeline.Count > 0)
+        {
+            <div class="card shadow-sm">
+                <div class="card-header"><h6 class="mb-0">Order Timeline</h6></div>
+                <div class="card-body">
+                    @foreach (var evt in timeline.OrderByDescending(t => t.EventDate))
+                    {
+                        <div class="d-flex mb-3">
+                            <div class="me-3 text-muted small" style="min-width:110px;">
+                                @evt.EventDate.ToString("dd MMM HH:mm")
+                            </div>
+                            <div>
+                                <span class="badge bg-secondary me-1">@evt.EventType</span>
+                                @evt.EventDescription
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Order Summary -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><h6 class="mb-0">Order Summary</h6></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal</span>
+                    <span>@Model.CurrencyCode @Model.SubtotalAmount.ToString("N2")</span>
+                </div>
+                @if (Model.DiscountAmount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Discount</span>
+                        <span>-@Model.CurrencyCode @Model.DiscountAmount.ToString("N2")</span>
+                    </div>
+                }
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tax</span>
+                    <span>@Model.CurrencyCode @Model.TaxAmount.ToString("N2")</span>
+                </div>
+                @if (Model.ShippingAmount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping</span>
+                        <span>@Model.CurrencyCode @Model.ShippingAmount.ToString("N2")</span>
+                    </div>
+                }
+                <hr />
+                <div class="d-flex justify-content-between fw-bold fs-5">
+                    <span>Total</span>
+                    <span>@Model.CurrencyCode @Model.TotalAmount.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments -->
+        @if (payments.Count > 0)
+        {
+            <div class="card shadow-sm mb-3">
+                <div class="card-header"><h6 class="mb-0">Payments</h6></div>
+                <div class="list-group list-group-flush">
+                    @foreach (var p in payments)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">@p.PaymentMethod</div>
+                                    <div class="text-muted small">@p.TransactionId</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-semibold">@Model.CurrencyCode @p.Amount.ToString("N2")</div>
+                                    <span class="badge @p.StatusBadgeClass">@p.PaymentStatus</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Shipments -->
+        @if (shipments.Count > 0)
+        {
+            <div class="card shadow-sm mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Shipments</h6>
+                    <a asp-action="Track" asp-route-id="@Model.OrderId" class="btn btn-sm btn-outline-primary">Track All</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    @foreach (var s in shipments)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">@(s.CarrierName ?? "Carrier")</div>
+                                    <div class="text-muted small">@s.ShippingMethod</div>
+                                </div>
+                                <span class="badge bg-info text-dark">@s.ShipmentStatus</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(s.TrackingNumber))
+                            {
+                                <div class="mt-1 small">
+                                    Tracking: <code>@s.TrackingNumber</code>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Shipping Address -->
+        @if (shippingAddr != null)
+        {
+            <div class="card shadow-sm mb-3">
+                <div class="card-header"><h6 class="mb-0">Shipping Address</h6></div>
+                <div class="card-body small">
+                    <div class="fw-semibold">@shippingAddr.FullName</div>
+                    <div>@shippingAddr.AddressLine1</div>
+                    @if (!string.IsNullOrEmpty(shippingAddr.AddressLine2))
+                    {
+                        <div>@shippingAddr.AddressLine2</div>
+                    }
+                    <div>@shippingAddr.City, @shippingAddr.StateProvince @shippingAddr.PostalCode</div>
+                    <div>@shippingAddr.CountryCode</div>
+                    @if (!string.IsNullOrEmpty(shippingAddr.Phone))
+                    {
+                        <div class="mt-1">?? @shippingAddr.Phone</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Actions -->
+        <div class="d-grid gap-2">
+            <a asp-action="Track" asp-route-id="@Model.OrderId" class="btn btn-outline-primary">
+                ?? Track Order
+            </a>
+            <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+@if (canCancel)
+{
+    <div class="modal fade" id="cancelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-action="CancelOrder" method="post">
+                    <input type="hidden" name="orderId" value="@Model.OrderId" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cancel Order @Model.OrderNumber</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Why do you want to cancel?</label>
+                            <select name="reason" class="form-select" required>
+                                <option value="">Select a reason...</option>
+                                <option value="Changed my mind">Changed my mind</option>
+                                <option value="Found a better price">Found a better price</option>
+                                <option value="Ordered by mistake">Ordered by mistake</option>
+                                <option value="Delivery time too long">Delivery time too long</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-warning small mb-0">
+                            This action cannot be undone. If payment was made, a refund will be processed.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Order</button>
+                        <button type="submit" class="btn btn-danger">Cancel Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

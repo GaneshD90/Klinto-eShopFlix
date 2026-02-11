@@ -9,23 +9,37 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/eShopFlix.Web.styles.css" asp-append-version="true" />
 </head>
+@{
+    var activeController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+}
 <body>
     <header class="sticky-top">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color:#1a1a2e;">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-area="Admin" asp-controller="Home" asp-action="Index">eShopFlix Admin</a>
+                <a class="navbar-brand fw-bold" asp-area="Admin" asp-controller="Home" asp-action="Index">
+                    <span class="text-warning">⚙</span> eShopFlix Admin
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="adminNavbar">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-controller="Home" asp-action="Index">Dashboard</a>
+                            <a class="nav-link @(activeController == "Home" ? "active fw-semibold" : "")" asp-area="Admin" asp-controller="Home" asp-action="Index">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(activeController == "Orders" ? "active fw-semibold" : "")" asp-area="Admin" asp-controller="Orders" asp-action="Index">Orders</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(activeController == "Stock" ? "active fw-semibold" : "")" asp-area="Admin" asp-controller="Stock" asp-action="Index">Stock</a>
                         </li>
                     </ul>
                     <ul class="navbar-nav mb-2 mb-lg-0">
                         <li class="nav-item align-self-center me-2">
-                            <span class="navbar-text text-light">Welcome: @CurrentUser?.Name</span>
+                            <a class="nav-link text-light small" asp-area="" asp-controller="Home" asp-action="Index" title="Visit storefront">🏪 Storefront</a>
+                        </li>
+                        <li class="nav-item align-self-center me-2">
+                            <span class="navbar-text text-light small">@CurrentUser?.Name</span>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="LogOut" asp-area="">Logout</a>
@@ -36,6 +50,8 @@
         </nav>
     </header>
     <div class="container py-4">
+        @await Html.PartialAsync("~/Views/Shared/_TokenStatus.cshtml")
+        @await Html.PartialAsync("~/Views/Shared/_FlashMessages.cshtml")
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
