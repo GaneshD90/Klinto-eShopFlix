@@ -1,166 +1,102 @@
-# EshopFlix Microservices
+﻿# Klinto eShopFlix - Microservices E-Commerce Platform
 
-EshopFlix is an e-commerce application built with .NET microservices and clean design patterns. This repository hosts multiple backend and frontend services, fronted by an API gateway.
+.NET 9, container-first microservices reference for an e-commerce store. The solution includes a Razor Pages frontend, Ocelot API gateway, domain-focused backend services, shared contracts, and Kubernetes/Docker tooling for local or Azure AKS deployment.
 
-> Status: WIP. This README documents the project layout, how to build locally, and a roadmap for production-grade features.
+## Architecture
+- **Frontend**: `FrontendServices/eShopFlix.Web` (Razor Pages) + `eShopFlix.Support` helpers
+- **API Gateway**: `ApiGateways/OcelotApiGateway` for routing/aggregation
+- **Backend services** (SQL Server per service):
+  - `CatalogService` – product catalog, search, stored procedures, promotions
+  - `AuthService` – authentication/identity flows
+  - `CartService` – cart domain, event sourcing, outbox/inbox, Azure Service Bus publisher
+  - `OrderService` – order workflow, fraud checks
+  - `PaymentService` – payment flows (e.g., RazorPay DTOs)
+  - `StockService` – inventory, reservations, alerts; MassTransit with Azure Service Bus fallback to in-memory
+- **Shared**: `eShopFlix.Shared/Contracts` for integration events and resilience primitives
+
+## Key capabilities
+- .NET 9, ASP.NET Core APIs + Razor Pages
+- CQRS across services; outbox/inbox patterns for reliability
+- Messaging via Azure Service Bus (MassTransit or native publisher) with logging fallback
+- Resilience: Polly policies, circuit breakers, retries, bulkhead + OpenTelemetry tracing
+- Observability: Serilog structured logging, health checks (`/health/live`, `/health/ready`), Swagger/OpenAPI per service
+- Containerized: Dockerfiles for every service + Ocelot + frontend
+- Kubernetes ready: `k8s/` manifests (dev/all-in-one, base, services, ingress, azure)
 
 ## Repository layout
+- `BackendServices/<Service>` – API, Application, Domain, Infrastructure projects for each service
+- `FrontendServices/eShopFlix.Web` – customer + admin UI (Razor Pages/MVC areas)
+- `FrontendServices/eShopFlix.Support` – shared web helpers
+- `ApiGateways/OcelotApiGateway` – gateway + `ocelot-docker.json`
+- `eShopFlix.Shared/Contracts` – shared contracts/events/resilience primitives
+- `scripts/` – `docker-local.ps1`, `build-images.ps1`, `deploy-dev.ps1`, `deploy-k8s.ps1`
+- `k8s/` – dev (all-in-one + secrets template), base, services, ingress, azure overlays
+- `docs/DEPLOYMENT.md` – detailed AKS and budget guidance
 
+## Prerequisites
+- .NET 9 SDK
+- Docker Desktop
+- SQL Server (local or Azure SQL Serverless if running services individually)
+- For cloud: Azure CLI + kubectl (see `docs/DEPLOYMENT.md`)
+
+## Run locally (Docker)
+```powershell
+# Build and start all services + SQL + gateway + frontend
+./scripts/docker-local.ps1 -Up -Build
+
+# Tail logs
+./scripts/docker-local.ps1 -Logs
+
+# Stop stack
+./scripts/docker-local.ps1 -Down
 ```
-.
-├─ ApiGateways/
-├─ BackendServices/
-├─ FrontendServices/
-├─ MicroservicesApp.sln
-├─ .dockerignore
-├─ .gitattributes
-└─ .gitignore
-```
 
-- [ApiGateways/](./ApiGateways): Edge routing, versioning, and auth policies. (e.g., Ocelot or YARP)
-- [BackendServices/](./BackendServices): Core domain services (e.g., Catalog, Basket/Cart, Ordering, Identity, Payment).
-- [FrontendServices/](./FrontendServices): End-user web UI or BFFs (Razor/MVC/SPA).
-- [MicroservicesApp.sln](./MicroservicesApp.sln): Solution file referencing all projects.
+Default endpoints:
+| Service | URL |
+| --- | --- |
+| Web App | http://localhost:5010 |
+| API Gateway | http://localhost:5000 |
+| Catalog API | http://localhost:5001 |
+| Auth API | http://localhost:5002 |
+| Cart API | http://localhost:5003 |
+| Payment API | http://localhost:5004 |
+| Order API | http://localhost:5005 |
+| Stock API | http://localhost:5006 |
+| SQL Server | localhost:1433 |
 
-If service directories are empty or placeholders, they’re planned for future commits.
-
-## Tech stack (used or planned)
-
-- .NET (ASP.NET Core), C#
-- Entity Framework Core (per-service DB and migrations)
-- API Gateway (Ocelot or YARP)
-- Message broker for async events (RabbitMQ or Kafka)
-- SQL database per service (SQL Server or PostgreSQL)
-- Redis for caching/session (optional)
-- OpenAPI/Swagger per service
-- Observability with Health Checks and OpenTelemetry (Jaeger/Zipkin, Prometheus)
-- Resilience with Polly (timeouts, retries, circuit breakers)
-
-## Quick start
-
-Prerequisites:
-- .NET SDK 8.0+ installed
-- A running database or container (per service) if required by the service you run
-- Node.js (only if a frontend SPA exists)
-
-1) Clone and restore
+## Run locally (without Docker)
 ```bash
-git clone https://github.com/GaneshDurai90/EshopFlix-Microservices.git
-cd EshopFlix-Microservices
-dotnet restore MicroservicesApp.sln
-```
+dotnet restore
+dotnet build
 
-2) Build
+# Example: run a service
+dotnet run --project BackendServices/CatalogService/CatalogService.API/CatalogService.API.csproj
+```
+Update `appsettings.Development.json` connection strings (per service) to point at your SQL instance. Each API exposes Swagger at `/swagger` and health checks at `/health/live` and `/health/ready`.
+
+## Tests
 ```bash
-dotnet build MicroservicesApp.sln -c Release
+dotnet test
 ```
 
-3) Run a service
-- Replace with an actual service project path once services are added:
-```bash
-dotnet run -c Release -p BackendServices/<ServiceName>/<ServiceName>.csproj
+## Deploy to Azure AKS (budget friendly)
+See `docs/DEPLOYMENT.md` for full steps. Summary:
+```powershell
+# 1) Provision ACR, AKS (B2s), SQL serverless
+./scripts/deploy-dev.ps1 -SetupInfra
+
+# 2) Build & push images
+./scripts/build-images.ps1 -All -Registry <acr>.azurecr.io
+
+# 3) Deploy manifests (uses k8s/dev/all-in-one.yaml)
+./scripts/deploy-dev.ps1 -Deploy
+
+# 4) Check status / ingress IP
+./scripts/deploy-dev.ps1 -Status
 ```
-- Swagger UI (when enabled) is typically at:
-  - https://localhost:PORT/swagger
+Stop the AKS cluster when idle to save cost: `az aks stop --name eshopflix-aks --resource-group eshopflix-rg`.
 
-4) API Gateway (when configured)
-- Run gateway project (e.g., Ocelot/YARP) from [ApiGateways/](./ApiGateways) and hit the gateway endpoint instead of per-service URLs.
-
-## Configuration
-
-Use environment variables for configuration:
-- ASPNETCORE_ENVIRONMENT=Development
-- ConnectionStrings__Default=...
-- MessageBroker__Host=...
-- Redis__ConnectionString=...
-- Jwt__Authority=..., Jwt__Audience=...
-
-Local secrets:
-- For development, consider `dotnet user-secrets` per service.
-- Never commit secrets.
-
-## Database and migrations
-
-Each service owns its database and EF Core migrations:
-```bash
-# From a service project directory
-dotnet ef migrations add InitialCreate
-dotnet ef database update
-```
-Document connection strings and seeding scripts per service.
-
-## Testing
-
-- Unit tests: domain/application layers
-- Integration tests: WebApplicationFactory + Testcontainers (SQL/Redis/RabbitMQ)
-- Contract tests: consumer/provider (e.g., Pact)
-- End-to-end: core checkout flow (Playwright) when UI exists
-
-Run tests:
-```bash
-dotnet test MicroservicesApp.sln --collect:"XPlat Code Coverage"
-```
-
-## Observability
-
-- Health checks (liveness/readiness): `/health` endpoints per service
-- OpenTelemetry (recommended):
-  - Traces to Jaeger/Zipkin
-  - Metrics to Prometheus
-- Correlation IDs: propagate across gateway/services for trace continuity
-
-## Resilience and reliability
-
-- Apply Polly policies per outbound dependency:
-  - Timeouts, retries (jittered backoff), circuit breakers, bulkheads
-- Idempotency for commands (checkout/payment)
-- Outbox pattern for reliable event publishing
-- Sagas/process managers for long-running workflows (order lifecycle)
-
-## Local development with containers (optional)
-
-If you plan to add Docker and docker-compose:
-- Add Dockerfiles per service with multi-stage builds
-- Add `docker-compose.yml` to orchestrate services + infra (SQL/Redis/RabbitMQ/Jaeger)
-- Developer container (devcontainer) for consistent dev environment
-
-## Roadmap
-
-- [ ] Define service list and ownership (Catalog, Basket, Ordering, Identity, Payment, Inventory)
-- [ ] Add API Gateway configuration with versioned routes and edge auth
-- [ ] Implement OpenAPI per service and generate typed clients
-- [ ] Introduce message broker and Outbox pattern
-- [ ] Enable OpenTelemetry tracing and standard health checks
-- [ ] Add CI (build/test/coverage), CodeQL, and Dependabot
-- [ ] Add docker-compose for local orchestration
-- [ ] Add integration and contract tests
-- [ ] Harden security (JWT scopes/roles, secret management, data protection)
-
-## Contributing
-
-- Use feature branches and PRs
-- Keep services independent with clear APIs and versioning
-- Add/update EF migrations with each schema change
-- Write tests for new features and bug fixes
-- 
-[![.NET 9 CI (All Services)](https://github.com/GaneshDurai90/EshopFlix-Microservices/actions/workflows/dotnet-ci.yml/badge.svg)](https://github.com/GaneshDurai90/EshopFlix-Microservices/actions/workflows/dotnet-ci.yml)
-
-## License
-Copyright (c) 2025 Your Name
-
-All rights reserved.
-
-This repository and its contents are provided for viewing and
-personal educational purposes only.
-
-Permission is NOT granted to:
-- Use this code in any personal, academic, or commercial project
-- Modify, copy, or create derivative works from this code
-- Distribute, sublicense, publish, or sell this code
-- Include this code in any software, application, or service
-
-Permission IS granted only to:
-- View the source code for personal learning purposes
-
-Any use of this code beyond the permissions explicitly granted
-above is strictly prohibited.
+## Notes
+- Outbox/inbox implementations exist in Cart and Catalog services for integration reliability.
+- Stock service uses comprehensive resilience via Polly pipelines for downstream calls.
+- Ocelot gateway + Dockerfiles enable single-command local spin-up.
