@@ -122,6 +122,9 @@ namespace StockService.Infrastructure
 
             // Application Services (kept for backward compatibility)
             services.AddScoped<IStockAppService, StockAppService>();
+
+            // MassTransit + Azure Service Bus
+            services.AddStockServiceMessaging(configuration);
         }
     }
 }

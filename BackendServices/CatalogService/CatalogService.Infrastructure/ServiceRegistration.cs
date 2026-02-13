@@ -23,10 +23,11 @@ namespace CatalogService.Infrastructure
         public static void RegisterServices(IServiceCollection services, IConfiguration configuration)
         {
             // DbContext
-            
-
             services.AddDbContext<CatalogServiceDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DbConnection")));
+
+            // MassTransit + Azure Service Bus
+            services.AddCatalogServiceMessaging(configuration);
 
             services.AddScoped<IDispatcher, Dispatcher>();
 

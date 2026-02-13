@@ -2,6 +2,7 @@
 using AuthService.Application.Repositories;
 using AuthService.Application.Services.Abstractions;
 using AuthService.Application.Services.Implementations;
+using AuthService.Infrastructure.Messaging;
 using AuthService.Infrastructure.Persistence;
 using AuthService.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,9 @@ namespace AuthService.Infrastructure
         {
             // Register application services
             services.AddScoped<IUserAppService, UserAppService>();
+
+            // MassTransit + Azure Service Bus
+            services.AddAuthServiceMessaging(configuration);
 
             // Register repositories
             services.AddScoped<IUserRepository, UserRepository>();

@@ -12,17 +12,34 @@ namespace PaymentService.Application.Tests.Services;
 
 public class PaymentAppServiceTests
 {
-    private static IMapper CreateMapper()
+    private static IMapper CreateMockMapper()
     {
-        var cfg = new MapperConfiguration(c => c.AddProfile<PaymentMapper>());
-        return cfg.CreateMapper();
+        var mockMapper = new Mock<IMapper>();
+        
+        mockMapper.Setup(m => m.Map<PaymentDetail>(It.IsAny<PaymentDetailDTO>()))
+            .Returns((PaymentDetailDTO dto) => new PaymentDetail
+            {
+                Id = dto.Id,
+                TransactionId = dto.TransactionId,
+                Tax = dto.Tax,
+                Currency = dto.Currency,
+                Total = dto.Total,
+                Email = dto.Email,
+                Status = dto.Status,
+                CartId = dto.CartId,
+                GrandTotal = dto.GrandTotal,
+                CreatedDate = dto.CreatedDate,
+                UserId = dto.UserId
+            });
+
+        return mockMapper.Object;
     }
 
     [Fact]
     public void SavePaymentDetails_ShouldMapAndPersist()
     {
         var repo = new Mock<IPaymentRepository>();
-        var mapper = CreateMapper();
+        var mapper = CreateMockMapper();
         repo.Setup(r => r.SavePayementDetails(It.IsAny<PaymentDetail>())).Returns(true);
 
         var sut = new PaymentAppService(repo.Object, mapper);

@@ -6,12 +6,15 @@ using OrderService.Application.Mappers;
 using OrderService.Application.Messaging;
 using OrderService.Application.Orders.Handlers;
 using OrderService.Application.Repositories;
+using OrderService.Application.Sagas.Services;
 using OrderService.Application.Services.Abstractions;
 using OrderService.Application.Services.Implementations;
 using OrderService.Infrastructure.Messaging;
 using OrderService.Infrastructure.Persistence;
 using OrderService.Infrastructure.Persistence.Repositories;
 using OrderService.Infrastructure.Persistence.Services;
+using OrderService.Infrastructure.Sagas;
+using Microsoft.Extensions.Hosting;
 using Scrutor;
 
 namespace OrderService.Infrastructure
@@ -25,6 +28,12 @@ namespace OrderService.Infrastructure
             {
                 options.UseSqlServer(configuration.GetConnectionString("DbConnection"));
             });
+
+            // MassTransit + Azure Service Bus
+            services.AddOrderServiceMessaging(configuration);
+
+            // Outbox Dispatcher (publishes outbox messages to MassTransit)
+            services.AddHostedService<OutboxDispatcherHostedService>();
 
             // CQRS
             services.AddScoped<IDispatcher, Dispatcher>();
@@ -59,6 +68,9 @@ namespace OrderService.Infrastructure
             services.AddScoped<IIntegrationEventPublisher, OutboxIntegrationEventPublisher>();
             services.AddScoped<IIdempotentAppRequest, IdempotentRequestStore>();
             services.AddScoped<IIdempotencyAppService, IdempotencyAppService>();
+
+            // Saga Monitoring Service
+            services.AddScoped<ISagaMonitoringService, SagaMonitoringService>();
 
             // Application Services
             services.AddScoped<IOrderAppService, OrderAppService>();

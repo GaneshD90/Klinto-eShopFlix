@@ -92,6 +92,9 @@ namespace CartService.Infrastructure
 
             // Replayer (enable via config: EventSourcing:ReplayOnStartup = true)
             services.AddHostedService<CartEventReplayHostedService>();
+
+            // MassTransit + Azure Service Bus
+            services.AddCartServiceMessaging(configuration);
         }
     }
 }

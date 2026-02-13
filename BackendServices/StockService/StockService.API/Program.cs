@@ -1,4 +1,3 @@
-using MassTransit;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
@@ -75,30 +74,7 @@ builder.Services.AddHealthChecks()
 // ============ OpenAPI ============
 builder.Services.AddOpenApi();
 
-// ============ MassTransit (Azure Service Bus) ============
-builder.Services.AddMassTransit(config =>
-{
-    // Consumers can be added here when needed
-    // config.AddConsumer<StockValidateConsumer>();
-
-    var connectionString = builder.Configuration["ServiceBus:ConnectionString"];
-    if (!string.IsNullOrWhiteSpace(connectionString))
-    {
-        config.UsingAzureServiceBus((ctx, cfg) =>
-        {
-            cfg.Host(connectionString);
-            cfg.ConfigureEndpoints(ctx);
-        });
-    }
-    else
-    {
-        // Use in-memory transport for development
-        config.UsingInMemory((ctx, cfg) =>
-        {
-            cfg.ConfigureEndpoints(ctx);
-        });
-    }
-});
+// ============ MassTransit is configured in StockService.Infrastructure.ServiceRegistration ============
 
 var app = builder.Build();
 
